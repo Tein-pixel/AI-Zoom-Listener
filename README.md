@@ -60,3 +60,15 @@ This is an unsigned debug APK for testing, not a Play Store release.
 - Health endpoint: `GET /health` (reports whether API keys are configured).
 - The deployment can build without provider keys, but AI requests return a clear configuration error until keys are added in Vercel Project Settings → Environment Variables.
 - Set `GEMINI_API_KEY` for transcription and either `NVIDIA_API_KEY` or `OPENROUTER_API_KEY` for response suggestions, then redeploy.
+
+## Floating orb workflow
+
+The Android interface uses an animated floating orb instead of the full-page recorder screen. Open the app once to set the Vercel backend URL and meeting topic, grant microphone permission and allow the bubble to appear over other apps, then return to Meet/Zoom.
+
+Tap the orb to start listening. The glass panel expands to show transcription chunks as they arrive (roughly every 8 seconds); the transcript field is editable so corrections can be made while listening. Tap the orb again to stop and ask the AI for one answer based on the corrected transcript. The floating panel displays the result.
+
+### Audio capture limits
+
+The current recording path uses the phone microphone. For speech from a meeting on the same device, audio must be audible through the phone speaker and still be available to the app's microphone input. Headphones, call audio routing, device firmware, or Android's concurrent-input policy can result in silence. Android 10's AudioPlaybackCapture is restricted to certain audio usages and capture policies; it is not a universal way to record protected voice-communication streams. The app does not attempt to bypass those restrictions.
+
+Use the app only where recording/transcription is permitted. A foreground notification is shown while the floating control is available, and the microphone service shows its own recording notification while active.
