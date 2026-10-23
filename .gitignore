@@ -1,0 +1,12 @@
+/build
+/.gradle
+/local.properties
+/.idea
+*.iml
+*.apk
+*.aab
+node_modules/
+.env
+.env.*
+!.env.example
+.vercel
