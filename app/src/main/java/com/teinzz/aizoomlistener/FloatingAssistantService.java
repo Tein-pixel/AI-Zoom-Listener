@@ -27,8 +27,6 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
-import android.content.Context;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.TypedValue;
@@ -38,7 +36,6 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import java.util.ArrayList;
 
 public class FloatingAssistantService extends Service {
     public static final String ACTION_SHOW = "com.teinzz.aizoomlistener.SHOW_FLOATING";
