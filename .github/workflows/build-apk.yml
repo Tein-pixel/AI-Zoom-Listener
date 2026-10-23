@@ -65,7 +65,7 @@ jobs:
       - name: Publish APK release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.run_number }}
+          tag_name: build-${{ github.run_number }}
           name: AI-Zoom Listener build ${{ github.run_number }}
           body: |
             Android debug APK generated automatically by GitHub Actions.
