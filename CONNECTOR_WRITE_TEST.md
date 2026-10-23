@@ -1,0 +1,1 @@
+Temporary GitHub connector write-permission test. This file will be removed if creation succeeds.
