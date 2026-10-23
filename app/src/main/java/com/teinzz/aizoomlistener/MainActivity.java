@@ -3,6 +3,9 @@ package com.teinzz.aizoomlistener;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.BroadcastReceiver;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -48,11 +51,6 @@ public class MainActivity extends Activity {
     private static final int MUTED = Color.rgb(155, 169, 190);
     private static final int ACCENT = Color.rgb(114, 148, 255);
 
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private final ExecutorService networkQueue = Executors.newSingleThreadExecutor();
-    private final Object transcriptLock = new Object();
-    private final StringBuilder transcriptHistory = new StringBuilder();
-
     private EditText backendInput;
     private EditText topicInput;
     private TextView statusView;
@@ -60,19 +58,26 @@ public class MainActivity extends Activity {
     private TextView answerView;
     private Button startButton;
     private Button stopButton;
-    private MediaRecorder recorder;
-    private File currentAudioFile;
-    private long segmentStartedAt;
     private volatile boolean listening;
+    private boolean receiverRegistered;
     private volatile String configuredBackendUrl = "";
 
-    private final Runnable rotateSegment = new Runnable() {
-        @Override public void run() {
-            if (!listening) return;
-            File completed = stopCurrentSegment();
-            if (listening) startSegment();
-            if (completed != null) enqueueAudio(completed);
-            if (listening) handler.postDelayed(this, SEGMENT_MS);
+    private final BroadcastReceiver serviceReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null) return;
+            String type = intent.getStringExtra("type");
+            String value = intent.getStringExtra("text");
+            if ("status".equals(type)) {
+                setStatus(value == null ? "" : value);
+            } else if ("transcript".equals(type)) {
+                appendOutput(transcriptView, value == null ? "" : value, true);
+            } else if ("answer".equals(type)) {
+                appendOutput(answerView, value == null ? "" : value, false);
+            } else if ("listening".equals(type)) {
+                listening = intent.getBooleanExtra("value", false);
+                updateButtons();
+            }
         }
     };
 
@@ -170,10 +175,14 @@ public class MainActivity extends Activity {
             p.topMargin = dp(12);
             outputCard.addView(clear, p);
             clear.setOnClickListener(v -> {
-                synchronized (transcriptLock) { transcriptHistory.setLength(0); }
+                Intent clearIntent = new Intent(this, AudioListenerService.class);
+                clearIntent.setAction(AudioListenerService.ACTION_CLEAR);
+                startService(clearIntent);
+                getSharedPreferences("listener_prefs", MODE_PRIVATE).edit()
+                        .remove("transcript_history").remove("last_answer").apply();
                 transcriptView.setText("Transkrip akan muncul di sini.");
                 answerView.setText("Saran jawaban akan muncul di sini.");
-                setStatus(listening ? "Sedang mendengarkan..." : "Percakapan dibersihkan.");
+                setStatus(listening ? "Riwayat percakapan dibersihkan; perekaman tetap aktif." : "Percakapan dibersihkan.");
             });
         }
     }
@@ -266,14 +275,25 @@ public class MainActivity extends Activity {
             return;
         }
         if (listening) return;
-        listening = true;
-        startSegment();
-        if (listening) {
-            handler.removeCallbacks(rotateSegment);
-            handler.postDelayed(rotateSegment, SEGMENT_MS);
-            setStatus("Sedang mendengarkan melalui mikrofon...");
+
+        Intent serviceIntent = new Intent(this, AudioListenerService.class);
+        serviceIntent.setAction(AudioListenerService.ACTION_START);
+        serviceIntent.putExtra("backend_url", baseUrl());
+        serviceIntent.putExtra("meeting_topic", topicInput.getText().toString().trim());
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+            listening = true;
+            updateButtons();
+            setStatus("Menyiapkan layanan mikrofon...");
+        } catch (Exception e) {
+            listening = false;
+            updateButtons();
+            setStatus("Gagal memulai layanan mikrofon: " + safeMessage(e));
         }
-        updateButtons();
     }
 
     @Override
@@ -288,169 +308,58 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void startSegment() {
-        try {
-            currentAudioFile = File.createTempFile("zoom-audio-", ".m4a", getCacheDir());
-            recorder = Build.VERSION.SDK_INT >= 31 ? new MediaRecorder(this) : new MediaRecorder();
-            recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-            recorder.setAudioEncodingBitRate(32000);
-            recorder.setAudioSamplingRate(16000);
-            recorder.setOutputFile(currentAudioFile.getAbsolutePath());
-            recorder.prepare();
-            recorder.start();
-            segmentStartedAt = System.currentTimeMillis();
-        } catch (Exception e) {
-            listening = false;
-            releaseRecorder();
-            setStatus("Gagal memulai mikrofon: " + safeMessage(e));
-            updateButtons();
-        }
-    }
-
-    private File stopCurrentSegment() {
-        File finished = currentAudioFile;
-        currentAudioFile = null;
-        MediaRecorder activeRecorder = recorder;
-        recorder = null;
-        if (activeRecorder == null) return null;
-        try {
-            long elapsed = System.currentTimeMillis() - segmentStartedAt;
-            if (elapsed < 800) {
-                activeRecorder.reset();
-                if (finished != null) finished.delete();
-                return null;
-            }
-            activeRecorder.stop();
-            activeRecorder.reset();
-            if (finished != null && finished.exists() && finished.length() > 1000) return finished;
-            if (finished != null) finished.delete();
-        } catch (RuntimeException e) {
-            if (finished != null) finished.delete();
-        } finally {
-            try { activeRecorder.release(); } catch (Exception ignored) {}
-        }
-        return null;
-    }
-
-    private void releaseRecorder() {
-        if (recorder != null) {
-            try { recorder.reset(); } catch (Exception ignored) {}
-            try { recorder.release(); } catch (Exception ignored) {}
-            recorder = null;
-        }
-        if (currentAudioFile != null) {
-            currentAudioFile.delete();
-            currentAudioFile = null;
-        }
-    }
-
     private void stopListening() {
-        if (!listening && recorder == null) {
-            setStatus("Tidak sedang merekam.");
-            return;
-        }
-        listening = false;
-        handler.removeCallbacks(rotateSegment);
-        File completed = stopCurrentSegment();
-        if (completed != null) enqueueAudio(completed);
-        updateButtons();
-        setStatus(completed == null ? "Perekaman dihentikan." : "Perekaman berhenti. Memproses potongan terakhir...");
-    }
-
-    private void enqueueAudio(File audioFile) {
-        networkQueue.execute(() -> {
-            try {
-                byte[] audio = readAll(audioFile);
-                if (audio.length < 1000) return;
-                String encoded = Base64.getEncoder().encodeToString(audio);
-                JSONObject request = new JSONObject();
-                request.put("audioBase64", encoded);
-                request.put("mimeType", "audio/mp4");
-                JSONObject transcribed = postJson("/api/transcribe", request);
-                String transcript = transcribed.optString("transcript", "").trim();
-                if (transcript.isEmpty()) throw new IOException("Transkrip kosong dari server.");
-                String context;
-                synchronized (transcriptLock) {
-                    if (transcriptHistory.length() > 0) transcriptHistory.append("\n");
-                    transcriptHistory.append(transcript);
-                    if (transcriptHistory.length() > 9000) {
-                        transcriptHistory.delete(0, transcriptHistory.length() - 9000);
-                    }
-                    context = transcriptHistory.toString();
-                }
-                appendOutput(transcriptView, transcript, true);
-                setStatus("Transkrip masuk. Membuat saran AI...");
-                JSONObject answerRequest = new JSONObject();
-                answerRequest.put("transcript", transcript);
-                answerRequest.put("context", context);
-                answerRequest.put("topic", getSharedPreferences("listener_prefs", MODE_PRIVATE).getString("meeting_topic", ""));
-                JSONObject answer = postJson("/api/answer", answerRequest);
-                String answerText = answer.optString("answer", "").trim();
-                if (answerText.isEmpty()) throw new IOException("Jawaban kosong dari server.");
-                appendOutput(answerView, answerText, false);
-                setStatus(listening ? "Sedang mendengarkan... saran terbaru siap." : "Selesai memproses audio.");
-            } catch (Exception e) {
-                setStatus("Proses gagal: " + safeMessage(e));
-            } finally {
-                if (audioFile.exists()) audioFile.delete();
-            }
-        });
-    }
-
-    private JSONObject postJson(String path, JSONObject payload) throws IOException {
-        HttpURLConnection connection = null;
+        Intent intent = new Intent(this, AudioListenerService.class);
+        intent.setAction(AudioListenerService.ACTION_STOP);
         try {
-            URL url = new URL(baseUrl() + path);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(60000);
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            connection.setRequestProperty("Accept", "application/json");
-            byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
-            connection.setFixedLengthStreamingMode(body.length);
-            try (OutputStream out = connection.getOutputStream()) {
-                out.write(body);
-            }
-            int code = connection.getResponseCode();
-            InputStream input = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
-            String responseText = input == null ? "" : readText(input);
-            JSONObject result;
+            startService(intent);
+            setStatus("Menghentikan mikrofon dan menyelesaikan audio yang tersisa...");
+        } catch (Exception e) {
+            setStatus("Gagal menghentikan layanan: " + safeMessage(e));
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        IntentFilter filter = new IntentFilter(AudioListenerService.ACTION_UPDATE);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(serviceReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(serviceReceiver, filter);
+        }
+        receiverRegistered = true;
+
+        SharedPreferences prefs = getSharedPreferences("listener_prefs", MODE_PRIVATE);
+        configuredBackendUrl = prefs.getString("backend_url", configuredBackendUrl);
+        String history = prefs.getString("transcript_history", "");
+        String lastAnswer = prefs.getString("last_answer", "");
+        String status = prefs.getString("status", "");
+        if (history.isEmpty()) {
+            transcriptView.setText("Transkrip akan muncul di sini.");
+        } else {
+            transcriptView.setText(history);
+        }
+        if (lastAnswer.isEmpty()) {
+            answerView.setText("Saran jawaban akan muncul di sini.");
+        } else {
+            answerView.setText(lastAnswer);
+        }
+        listening = prefs.getBoolean("is_listening", false);
+        if (statusView != null && !status.isEmpty()) statusView.setText(status);
+        updateButtons();
+    }
+
+    @Override
+    protected void onStop() {
+        if (receiverRegistered) {
             try {
-                result = new JSONObject(responseText);
-            } catch (Exception parseException) {
-                throw new IOException("Server mengembalikan respons tidak valid (HTTP " + code + ").");
+                unregisterReceiver(serviceReceiver);
+            } catch (IllegalArgumentException ignored) {
             }
-            if (code < 200 || code >= 300) {
-                String message = result.optString("error", "HTTP " + code);
-                throw new IOException(message);
-            }
-            return result;
-        } finally {
-            if (connection != null) connection.disconnect();
+            receiverRegistered = false;
         }
-    }
-
-    private byte[] readAll(File file) throws IOException {
-        try (FileInputStream in = new FileInputStream(file);
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
-            return out.toByteArray();
-        }
-    }
-
-    private String readText(InputStream input) throws IOException {
-        try (InputStream in = input; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[4096];
-            int count;
-            while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
-            return out.toString(StandardCharsets.UTF_8.name());
-        }
+        super.onStop();
     }
 
     private void appendOutput(TextView target, String value, boolean transcript) {
@@ -486,10 +395,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        listening = false;
-        handler.removeCallbacks(rotateSegment);
-        releaseRecorder();
-        networkQueue.shutdown();
+        // Recording is owned by AudioListenerService and may continue while Zoom is foreground.
         super.onDestroy();
     }
 }
