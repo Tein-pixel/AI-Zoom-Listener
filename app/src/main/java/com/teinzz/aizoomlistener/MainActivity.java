@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Bundle;
@@ -45,8 +46,8 @@ import java.util.concurrent.Executors;
 public class MainActivity extends Activity {
     private static final int RECORD_AUDIO_REQUEST = 701;
     private static final long SEGMENT_MS = 12000L;
-    private static final int BG = Color.rgb(12, 16, 24);
-    private static final int CARD = Color.rgb(22, 29, 41);
+    private static final int BG = Color.rgb(8, 12, 21);
+    private static final int CARD = Color.rgb(25, 33, 50);
     private static final int TEXT = Color.rgb(238, 243, 251);
     private static final int MUTED = Color.rgb(155, 169, 190);
     private static final int ACCENT = Color.rgb(114, 148, 255);
@@ -100,48 +101,55 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
+        scroll.setClipToPadding(false);
+        scroll.setVerticalScrollBarEnabled(false);
 
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(18), dp(24), dp(18), dp(28));
+        page.setPadding(dp(20), dp(28), dp(20), dp(26));
+        page.setBackgroundColor(Color.TRANSPARENT);
         scroll.addView(page, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        TextView title = text("AI-Zoom Listener", 27, TEXT, true);
+        TextView title = text("AI-Zoom Listener", 28, TEXT, true);
         page.addView(title);
-        TextView subtitle = text("Dengarkan lewat mikrofon, transkripkan, lalu dapatkan saran AI.", 14, MUTED, false);
+        TextView subtitle = text("Dengarkan lewat mikrofon, transkripsikan, lalu dapatkan saran AI.", 14, MUTED, false);
+        subtitle.setLineSpacing(dp(2), 1.0f);
         LinearLayout.LayoutParams subParams = params(-1, -2);
-        subParams.topMargin = dp(6);
+        subParams.topMargin = dp(7);
         page.addView(subtitle, subParams);
 
         LinearLayout configCard = card(page);
-        addLabel(configCard, "URL backend Vercel");
-        backendInput = edit("https://ai-zoom-listener.vercel.app", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        configCard.addView(backendInput, params(-1, dp(50)));
-        addLabel(configCard, "Topik rapat (opsional)");
+        addLabel(configCard, "URL BACKEND VERCEL");
+        backendInput = edit("https://nama-proyek.vercel.app", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        configCard.addView(backendInput, params(-1, dp(54)));
+        addLabel(configCard, "TOPIK RAPAT (OPSIONAL)");
         topicInput = edit("Contoh: materi biologi, proyek, atau wawancara", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        configCard.addView(topicInput, params(-1, dp(50)));
+        configCard.addView(topicInput, params(-1, dp(62)));
         Button saveButton = button("Simpan konfigurasi", ACCENT, BG);
-        LinearLayout.LayoutParams saveParams = params(-1, dp(46));
-        saveParams.topMargin = dp(12);
+        LinearLayout.LayoutParams saveParams = params(-1, dp(49));
+        saveParams.topMargin = dp(15);
         configCard.addView(saveButton, saveParams);
         saveButton.setOnClickListener(v -> saveConfiguration());
 
         LinearLayout controlCard = card(page);
-        statusView = text("Belum mulai", 14, MUTED, false);
+        statusView = text("Belum mulai", 13, MUTED, true);
+        statusView.setPadding(dp(13), dp(10), dp(13), dp(10));
+        statusView.setBackground(roundedGradient(Color.rgb(34, 44, 64), Color.rgb(22, 30, 46),
+                Color.rgb(53, 68, 96), 14));
         controlCard.addView(statusView);
         LinearLayout buttons = new LinearLayout(this);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams buttonRow = params(-1, dp(50));
+        LinearLayout.LayoutParams buttonRow = params(-1, dp(51));
         buttonRow.topMargin = dp(14);
         controlCard.addView(buttons, buttonRow);
         startButton = button("Mulai dengarkan", ACCENT, BG);
-        stopButton = button("Berhenti", Color.rgb(50, 62, 79), TEXT);
+        stopButton = button("Berhenti", Color.rgb(39, 49, 68), TEXT);
         LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, -1, 1f);
-        half.rightMargin = dp(6);
+        half.rightMargin = dp(5);
         buttons.addView(startButton, half);
         LinearLayout.LayoutParams half2 = new LinearLayout.LayoutParams(0, -1, 1f);
-        half2.leftMargin = dp(6);
+        half2.leftMargin = dp(5);
         buttons.addView(stopButton, half2);
         startButton.setOnClickListener(v -> startListening());
         stopButton.setOnClickListener(v -> stopListening());
@@ -150,8 +158,9 @@ public class MainActivity extends Activity {
         addOutputCard(page, "Saran AI", false);
 
         TextView privacy = text("Audio diproses melalui backend yang kamu konfigurasi. Gunakan rekaman hanya dengan izin yang sesuai. Aplikasi ini memakai mikrofon; audio internal Zoom belum tentu tertangkap.", 12, MUTED, false);
+        privacy.setLineSpacing(dp(2), 1.0f);
         LinearLayout.LayoutParams privacyParams = params(-1, -2);
-        privacyParams.topMargin = dp(15);
+        privacyParams.topMargin = dp(18);
         page.addView(privacy, privacyParams);
 
         setContentView(scroll);
@@ -163,14 +172,15 @@ public class MainActivity extends Activity {
         outputCard.addView(label);
         TextView output = text(isTranscript ? "Transkrip akan muncul di sini." : "Saran jawaban akan muncul di sini.", 14, isTranscript ? MUTED : TEXT, false);
         output.setTextIsSelectable(true);
-        output.setMinHeight(dp(80));
-        output.setPadding(0, dp(12), 0, dp(2));
+        output.setMinHeight(dp(58));
+        output.setLineSpacing(dp(2), 1.0f);
+        output.setPadding(0, dp(10), 0, dp(2));
         outputCard.addView(output, params(-1, -2));
         if (isTranscript) transcriptView = output;
         else answerView = output;
 
         if (!isTranscript) {
-            Button clear = button("Bersihkan percakapan", Color.rgb(50, 62, 79), TEXT);
+            Button clear = button("Bersihkan percakapan", Color.rgb(39, 49, 68), TEXT);
             LinearLayout.LayoutParams p = params(-1, dp(44));
             p.topMargin = dp(12);
             outputCard.addView(clear, p);
@@ -190,32 +200,40 @@ public class MainActivity extends Activity {
     private LinearLayout card(LinearLayout parent) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(15), dp(15), dp(15), dp(15));
-        box.setBackgroundColor(CARD);
+        box.setPadding(dp(17), dp(17), dp(17), dp(17));
+        box.setBackground(roundedGradient(Color.rgb(29, 38, 57), CARD,
+                Color.rgb(48, 61, 86), 23));
+        box.setElevation(dp(3));
+        box.setClipToOutline(true);
         LinearLayout.LayoutParams p = params(-1, -2);
-        p.topMargin = dp(16);
+        p.topMargin = dp(15);
         parent.addView(box, p);
         return box;
     }
 
     private void addLabel(LinearLayout parent, String value) {
-        TextView label = text(value, 13, MUTED, true);
+        TextView label = text(value, 11, MUTED, true);
+        label.setLetterSpacing(0.07f);
         LinearLayout.LayoutParams p = params(-1, -2);
-        p.topMargin = dp(8);
-        p.bottomMargin = dp(7);
+        p.topMargin = dp(3);
+        p.bottomMargin = dp(8);
         parent.addView(label, p);
     }
 
     private EditText edit(String hint, int inputType) {
         EditText field = new EditText(this);
-        field.setSingleLine(true);
+        boolean multiLine = (inputType & InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0;
+        field.setSingleLine(!multiLine);
+        if (multiLine) field.setMaxLines(2);
         field.setTextSize(14);
         field.setTextColor(TEXT);
         field.setHintTextColor(MUTED);
         field.setHint(hint);
         field.setInputType(inputType);
-        field.setPadding(dp(11), 0, dp(11), 0);
-        field.setBackgroundColor(Color.rgb(33, 42, 57));
+        field.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        field.setPadding(dp(14), dp(6), dp(14), dp(6));
+        field.setBackground(roundedGradient(Color.rgb(38, 49, 70), Color.rgb(25, 34, 51),
+                Color.rgb(55, 70, 98), 16));
         return field;
     }
 
@@ -226,8 +244,28 @@ public class MainActivity extends Activity {
         b.setAllCaps(false);
         b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         b.setTextColor(foreground);
-        b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(background));
+        boolean primary = background == ACCENT;
+        int top = primary ? Color.rgb(145, 169, 255) : lighter(background, 1.14f);
+        int stroke = primary ? Color.rgb(169, 190, 255) : Color.rgb(65, 78, 101);
+        b.setBackground(roundedGradient(top, background, stroke, 16));
+        b.setPadding(dp(10), 0, dp(10), 0);
+        b.setElevation(dp(primary ? 3 : 1));
         return b;
+    }
+
+    private GradientDrawable roundedGradient(int top, int bottom, int stroke, float radiusDp) {
+        GradientDrawable drawable = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM, new int[]{top, bottom});
+        drawable.setCornerRadius(dp(radiusDp));
+        drawable.setStroke(dp(1), stroke);
+        return drawable;
+    }
+
+    private int lighter(int color, float amount) {
+        return Color.rgb(
+                Math.min(255, Math.round(Color.red(color) * amount)),
+                Math.min(255, Math.round(Color.green(color) * amount)),
+                Math.min(255, Math.round(Color.blue(color) * amount)));
     }
 
     private TextView text(String value, int size, int color, boolean bold) {
