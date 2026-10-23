@@ -46,11 +46,11 @@ import java.util.concurrent.Executors;
 public class MainActivity extends Activity {
     private static final int RECORD_AUDIO_REQUEST = 701;
     private static final long SEGMENT_MS = 12000L;
-    private static final int BG = Color.rgb(8, 12, 21);
-    private static final int CARD = Color.rgb(25, 33, 50);
-    private static final int TEXT = Color.rgb(238, 243, 251);
-    private static final int MUTED = Color.rgb(155, 169, 190);
-    private static final int ACCENT = Color.rgb(114, 148, 255);
+    private static final int BG = Color.rgb(7, 10, 19);
+    private static final int CARD = Color.rgb(19, 27, 43);
+    private static final int TEXT = Color.rgb(242, 246, 255);
+    private static final int MUTED = Color.rgb(153, 169, 194);
+    private static final int ACCENT = Color.rgb(104, 139, 255);
 
     private EditText backendInput;
     private EditText topicInput;
@@ -106,24 +106,25 @@ public class MainActivity extends Activity {
 
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(20), dp(28), dp(20), dp(26));
+        page.setPadding(dp(20), dp(24), dp(20), dp(28));
         page.setBackgroundColor(Color.TRANSPARENT);
         scroll.addView(page, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        TextView title = text("AI-Zoom Listener", 28, TEXT, true);
+        TextView title = text("AI-Zoom Listener", 29, TEXT, true);
         page.addView(title);
         TextView subtitle = text("Dengarkan lewat mikrofon, transkripsikan, lalu dapatkan saran AI.", 14, MUTED, false);
-        subtitle.setLineSpacing(dp(2), 1.0f);
+        subtitle.setLineSpacing(dp(3), 1.0f);
         LinearLayout.LayoutParams subParams = params(-1, -2);
-        subParams.topMargin = dp(7);
+        subParams.topMargin = dp(8);
+        subParams.bottomMargin = dp(5);
         page.addView(subtitle, subParams);
 
         LinearLayout configCard = card(page);
-        addLabel(configCard, "URL BACKEND VERCEL");
+        addLabel(configCard, "BACKEND URL");
         backendInput = edit("https://nama-proyek.vercel.app", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         configCard.addView(backendInput, params(-1, dp(54)));
-        addLabel(configCard, "TOPIK RAPAT (OPSIONAL)");
+        addLabel(configCard, "TOPIK / KONTEKS (OPSIONAL)");
         topicInput = edit("Contoh: materi biologi, proyek, atau wawancara", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         configCard.addView(topicInput, params(-1, dp(62)));
         Button saveButton = button("Simpan konfigurasi", ACCENT, BG);
@@ -133,15 +134,16 @@ public class MainActivity extends Activity {
         saveButton.setOnClickListener(v -> saveConfiguration());
 
         LinearLayout controlCard = card(page);
+        controlCard.setBackground(roundedGradient(Color.rgb(35, 49, 79), Color.rgb(18, 26, 43), Color.rgb(80, 105, 161), 25));
         statusView = text("Belum mulai", 13, MUTED, true);
         statusView.setPadding(dp(13), dp(10), dp(13), dp(10));
-        statusView.setBackground(roundedGradient(Color.rgb(34, 44, 64), Color.rgb(22, 30, 46),
-                Color.rgb(53, 68, 96), 14));
+        statusView.setBackground(roundedGradient(Color.rgb(27, 40, 62), Color.rgb(18, 27, 43),
+                Color.rgb(57, 79, 119), 18));
         controlCard.addView(statusView);
         LinearLayout buttons = new LinearLayout(this);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams buttonRow = params(-1, dp(51));
-        buttonRow.topMargin = dp(14);
+        buttonRow.topMargin = dp(12);
         controlCard.addView(buttons, buttonRow);
         startButton = button("Mulai dengarkan", ACCENT, BG);
         stopButton = button("Berhenti", Color.rgb(39, 49, 68), TEXT);
@@ -168,11 +170,11 @@ public class MainActivity extends Activity {
 
     private void addOutputCard(LinearLayout page, String heading, boolean isTranscript) {
         LinearLayout outputCard = card(page);
-        TextView label = text(heading, 17, TEXT, true);
+        TextView label = text(heading, 18, TEXT, true);
         outputCard.addView(label);
         TextView output = text(isTranscript ? "Transkrip akan muncul di sini." : "Saran jawaban akan muncul di sini.", 14, isTranscript ? MUTED : TEXT, false);
         output.setTextIsSelectable(true);
-        output.setMinHeight(dp(58));
+        output.setMinHeight(dp(48));
         output.setLineSpacing(dp(2), 1.0f);
         output.setPadding(0, dp(10), 0, dp(2));
         outputCard.addView(output, params(-1, -2));
@@ -200,13 +202,13 @@ public class MainActivity extends Activity {
     private LinearLayout card(LinearLayout parent) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(17), dp(17), dp(17), dp(17));
-        box.setBackground(roundedGradient(Color.rgb(29, 38, 57), CARD,
-                Color.rgb(48, 61, 86), 23));
-        box.setElevation(dp(3));
+        box.setPadding(dp(18), dp(18), dp(18), dp(18));
+        box.setBackground(roundedGradient(Color.rgb(28, 38, 59), CARD,
+                Color.rgb(55, 72, 105), 25));
+        box.setElevation(dp(5));
         box.setClipToOutline(true);
         LinearLayout.LayoutParams p = params(-1, -2);
-        p.topMargin = dp(15);
+        p.topMargin = dp(13);
         parent.addView(box, p);
         return box;
     }
@@ -227,13 +229,13 @@ public class MainActivity extends Activity {
         if (multiLine) field.setMaxLines(2);
         field.setTextSize(14);
         field.setTextColor(TEXT);
-        field.setHintTextColor(MUTED);
+        field.setHintTextColor(Color.rgb(133, 149, 176));
         field.setHint(hint);
         field.setInputType(inputType);
         field.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        field.setPadding(dp(14), dp(6), dp(14), dp(6));
-        field.setBackground(roundedGradient(Color.rgb(38, 49, 70), Color.rgb(25, 34, 51),
-                Color.rgb(55, 70, 98), 16));
+        field.setPadding(dp(15), dp(7), dp(15), dp(7));
+        field.setBackground(roundedGradient(Color.rgb(35, 47, 70), Color.rgb(20, 29, 46),
+                Color.rgb(63, 82, 119), 18));
         return field;
     }
 
@@ -244,12 +246,13 @@ public class MainActivity extends Activity {
         b.setAllCaps(false);
         b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         b.setTextColor(foreground);
+        b.setLetterSpacing(0.01f);
         boolean primary = background == ACCENT;
-        int top = primary ? Color.rgb(145, 169, 255) : lighter(background, 1.14f);
-        int stroke = primary ? Color.rgb(169, 190, 255) : Color.rgb(65, 78, 101);
-        b.setBackground(roundedGradient(top, background, stroke, 16));
+        int top = primary ? Color.rgb(157, 181, 255) : lighter(background, 1.18f);
+        int stroke = primary ? Color.rgb(184, 201, 255) : Color.rgb(79, 93, 122);
+        b.setBackground(roundedGradient(top, background, stroke, 18));
         b.setPadding(dp(10), 0, dp(10), 0);
-        b.setElevation(dp(primary ? 3 : 1));
+        b.setElevation(dp(primary ? 5 : 2));
         return b;
     }
 
