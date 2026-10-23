@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <title>AI-Zoom Listener API</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#0b1020; color:#eef3ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; padding:24px; background:radial-gradient(ellipse at 50% 0%,#1b2a48 0%,#0b1020 55%); }
+    main { width:min(100%,520px); border:1px solid #293755; border-radius:24px; padding:26px; background:rgba(16,24,42,.92); box-shadow:0 22px 70px #0006; }
+    .mark { width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,#8cb4ff,#466bed);color:#071126;font-size:22px;font-weight:800; }
+    h1 { margin:18px 0 7px;font-size:25px;letter-spacing:-.04em; }
+    p { color:#aebbd3;line-height:1.55;font-size:14px; }
+    .status { display:flex;align-items:center;gap:10px;margin-top:22px;padding:13px 14px;border:1px solid #2d4260;border-radius:14px;background:#121f35; }
+    .dot { width:9px;height:9px;flex:none;border-radius:50%;background:#91a0b9; }
+    .status.ok .dot { background:#53dfaa;box-shadow:0 0 12px #53dfaa77; }
+    .status.bad .dot { background:#ff7777; }
+    .meta { margin-top:20px;display:grid;gap:10px; }
+    .item { display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #23304a;font-size:13px; }
+    .item:last-child { border-bottom:0; }
+    .name { color:#aebbd3; }
+    code { color:#cfddff;background:#101a2c;padding:5px 7px;border-radius:7px;font-size:12px; }
+    footer { margin-top:18px;font-size:12px;color:#71819f; }
+    a { color:#b7ceff; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark" aria-hidden="true">◉</div>
+    <h1>AI-Zoom Listener API</h1>
+    <p>Backend untuk transkripsi audio dan saran AI. Halaman ini juga memeriksa apakah fungsi API dapat merespons.</p>
+    <div id="status" class="status"><span class="dot"></span><span id="statusText">Memeriksa status backend…</span></div>
+    <div class="meta">
+      <div class="item"><span class="name">Transkripsi</span><code>POST /api/transcribe</code></div>
+      <div class="item"><span class="name">Saran AI</span><code>POST /api/answer</code></div>
+    </div>
+    <footer>API key tidak pernah ditampilkan di halaman ini. Untuk penggunaan APK, gunakan URL domain ini tanpa path tambahan.</footer>
+  </main>
+  <script>
+    const box = document.getElementById("status");
+    const text = document.getElementById("statusText");
+    fetch("/api/health", {cache:"no-store"})
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok || body.status !== "ok") throw new Error("Health check gagal");
+        box.classList.add("ok");
+        text.textContent = "Backend merespons. API tersedia.";
+      })
+      .catch(() => {
+        box.classList.add("bad");
+        text.textContent = "Halaman tampil, tetapi health check API gagal. Periksa Vercel Logs.";
+      });
+  </script>
+</body>
+</html>
