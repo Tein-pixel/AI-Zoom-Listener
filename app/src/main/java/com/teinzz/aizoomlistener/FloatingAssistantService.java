@@ -47,6 +47,8 @@ public class FloatingAssistantService extends Service {
     private WindowManager.LayoutParams windowParams;
     private LinearLayout root;
     private LinearLayout topRow;
+    private LinearLayout headingBox;
+    private FrameLayout orbFrame;
     private LinearLayout panel;
     private OrbView orb;
     private TextView headline;
@@ -185,25 +187,25 @@ public class FloatingAssistantService extends Service {
     private void buildOverlay(String oldTranscript, String oldAnswer) {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(5), dp(5), dp(5), dp(5));
-        root.setBackground(glass(Color.argb(245, 13, 20, 37), Color.argb(236, 20, 36, 65),
-                Color.argb(210, 86, 132, 235), 28));
+        root.setPadding(0, 0, 0, 0);
+        root.setBackgroundColor(Color.TRANSPARENT);
 
         topRow = new LinearLayout(this);
         topRow.setOrientation(LinearLayout.HORIZONTAL);
         topRow.setGravity(Gravity.CENTER_VERTICAL);
-        topRow.setPadding(dp(4), dp(3), dp(4), dp(3));
-        root.addView(topRow, new LinearLayout.LayoutParams(-1, dp(70)));
+        topRow.setPadding(0, 0, 0, 0);
+        root.addView(topRow, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
-        FrameLayout orbFrame = new FrameLayout(this);
+        orbFrame = new FrameLayout(this);
         orb = new OrbView(this);
-        FrameLayout.LayoutParams orbParams = new FrameLayout.LayoutParams(dp(62), dp(62), Gravity.CENTER);
+        FrameLayout.LayoutParams orbParams = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.CENTER);
         orbFrame.addView(orb, orbParams);
-        topRow.addView(orbFrame, new LinearLayout.LayoutParams(dp(68), dp(68)));
+        topRow.addView(orbFrame, new LinearLayout.LayoutParams(dp(48), dp(48)));
         orbFrame.setOnTouchListener((view, event) -> handleOrbTouch(event));
 
-        LinearLayout headingBox = new LinearLayout(this);
+        headingBox = new LinearLayout(this);
         headingBox.setOrientation(LinearLayout.VERTICAL);
+        headingBox.setVisibility(View.GONE);
         headingBox.setGravity(Gravity.CENTER_VERTICAL);
         TextView brand = label("ORBIT AI", 12, Color.WHITE, true);
         brand.setLetterSpacing(0.11f);
@@ -222,12 +224,13 @@ public class FloatingAssistantService extends Service {
         panelButton.setBackground(glass(Color.argb(80, 75, 112, 189), Color.argb(50, 26, 45, 80),
                 Color.argb(100, 123, 161, 230), 18));
         topRow.addView(panelButton, new LinearLayout.LayoutParams(dp(36), dp(40)));
-        panelButton.setText("⋯");
+        panelButton.setText("⌄");
+        panelButton.setVisibility(View.GONE);
         panelButton.setOnClickListener(v -> expandPanel(!panelOpen));
 
         panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(12), dp(11), dp(12), dp(12));
+        panel.setPadding(dp(10), dp(9), dp(10), dp(10));
         panel.setBackground(glass(Color.argb(232, 15, 24, 43), Color.argb(222, 20, 31, 53),
                 Color.argb(150, 70, 103, 161), 23));
         panel.setVisibility(View.GONE);
@@ -242,8 +245,8 @@ public class FloatingAssistantService extends Service {
         TextView transcriptTitle = label("TRANSKRIP • BISA DIEDIT", 10, Color.rgb(126, 168, 255), true);
         transcriptTitle.setLetterSpacing(0.07f);
         LinearLayout.LayoutParams tt = new LinearLayout.LayoutParams(-1, -2);
-        tt.topMargin = dp(10);
-        tt.bottomMargin = dp(6);
+        tt.topMargin = dp(7);
+        tt.bottomMargin = dp(4);
         panel.addView(transcriptTitle, tt);
 
         transcript = new EditText(this);
@@ -256,12 +259,12 @@ public class FloatingAssistantService extends Service {
                 android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE |
                 android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         transcript.setSingleLine(false);
-        transcript.setMinLines(3);
-        transcript.setMaxLines(7);
-        transcript.setPadding(dp(11), dp(10), dp(11), dp(10));
+        transcript.setMinLines(2);
+        transcript.setMaxLines(4);
+        transcript.setPadding(dp(9), dp(7), dp(9), dp(7));
         transcript.setBackground(glass(Color.argb(185, 27, 41, 65), Color.argb(180, 16, 27, 47),
                 Color.argb(115, 78, 112, 171), 17));
-        panel.addView(transcript, new LinearLayout.LayoutParams(-1, -2));
+        panel.addView(transcript, new LinearLayout.LayoutParams(-1, dp(78)));
         setTranscript(oldTranscript);
 
         transcript.addTextChangedListener(new TextWatcher() {
@@ -284,8 +287,8 @@ public class FloatingAssistantService extends Service {
         TextView answerTitle = label("SARAN AI", 10, Color.rgb(126, 168, 255), true);
         answerTitle.setLetterSpacing(0.08f);
         LinearLayout.LayoutParams at = new LinearLayout.LayoutParams(-1, -2);
-        at.topMargin = dp(12);
-        at.bottomMargin = dp(6);
+        at.topMargin = dp(8);
+        at.bottomMargin = dp(4);
         panel.addView(answerTitle, at);
 
         ScrollView answerScroll = new ScrollView(this);
@@ -296,13 +299,13 @@ public class FloatingAssistantService extends Service {
         answer.setTextIsSelectable(true);
         answer.setLineSpacing(dp(2), 1f);
         answerScroll.addView(answer, new ScrollView.LayoutParams(-1, -2));
-        panel.addView(answerScroll, new LinearLayout.LayoutParams(-1, dp(86)));
+        panel.addView(answerScroll, new LinearLayout.LayoutParams(-1, dp(66)));
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(36));
-        actionsParams.topMargin = dp(8);
+        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(32));
+        actionsParams.topMargin = dp(7);
         panel.addView(actions, actionsParams);
 
         TextView clear = label("Bersihkan teks", 11, Color.rgb(196, 211, 237), true);
@@ -328,7 +331,7 @@ public class FloatingAssistantService extends Service {
         hide.setOnClickListener(v -> expandPanel(false));
 
         windowParams = new WindowManager.LayoutParams(
-                dp(104),
+                dp(48),
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 Build.VERSION.SDK_INT >= 26
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -336,7 +339,7 @@ public class FloatingAssistantService extends Service {
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 android.graphics.PixelFormat.TRANSLUCENT);
         windowParams.gravity = Gravity.TOP | Gravity.RIGHT;
-        windowParams.x = dp(10);
+        windowParams.x = dp(12);
         windowParams.y = dp(190);
         windowParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
         if (!panelOpen) windowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
@@ -401,25 +404,53 @@ public class FloatingAssistantService extends Service {
         refreshOrb();
     }
 
+    private int compactPanelWidth() {
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        return Math.min(dp(260), Math.max(dp(232), screenWidth - dp(40)));
+    }
+
     private void expandPanel(boolean show) {
         if (panel == null || root == null) return;
         panelOpen = show;
         panel.setVisibility(show ? View.VISIBLE : View.GONE);
+        root.setPadding(show ? dp(6) : 0, show ? dp(6) : 0,
+                show ? dp(6) : 0, show ? dp(6) : 0);
         root.setBackground(show
-                ? glass(Color.argb(245, 13, 20, 37), Color.argb(236, 20, 36, 65),
-                    Color.argb(210, 86, 132, 235), 28)
-                : glass(Color.argb(8, 13, 20, 37), Color.argb(5, 20, 36, 65),
-                    Color.argb(20, 86, 132, 235), 28));
-        if (panelButton != null) panelButton.setText(show ? "⌄" : "⋯");
+                ? glass(Color.rgb(22, 31, 49), Color.rgb(13, 20, 34),
+                    Color.rgb(60, 78, 112), 23)
+                : null);
+        if (!show) root.setBackgroundColor(Color.TRANSPARENT);
+        if (headingBox != null) headingBox.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (panelButton != null) {
+            panelButton.setVisibility(show ? View.VISIBLE : View.GONE);
+            panelButton.setText("⌄");
+        }
+        if (topRow != null) {
+            topRow.setPadding(show ? dp(2) : 0, 0, show ? dp(2) : 0, 0);
+            ViewGroup.LayoutParams rowParams = topRow.getLayoutParams();
+            rowParams.width = show ? compactPanelWidth() - dp(12) : dp(48);
+            rowParams.height = show ? dp(50) : dp(48);
+            topRow.setLayoutParams(rowParams);
+        }
+        if (orbFrame != null) {
+            LinearLayout.LayoutParams orbParams = (LinearLayout.LayoutParams) orbFrame.getLayoutParams();
+            orbParams.width = show ? dp(46) : dp(48);
+            orbParams.height = show ? dp(46) : dp(48);
+            orbFrame.setLayoutParams(orbParams);
+            FrameLayout.LayoutParams inner = (FrameLayout.LayoutParams) orb.getLayoutParams();
+            inner.width = show ? dp(44) : dp(46);
+            inner.height = show ? dp(44) : dp(46);
+            orb.setLayoutParams(inner);
+        }
         if (headline != null) headline.setText(listening ? "Mendengarkan aktif" :
                 (waitingForAnswer ? "AI sedang berpikir" : "Tekan bola untuk mulai"));
-        if (windowParams != null && overlayAdded) {
-            windowParams.width = show ? dp(310) : dp(104);
+        if (windowParams != null) {
+            windowParams.width = show ? compactPanelWidth() : dp(48);
             if (show) windowParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
             else windowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-            try { windowManager.updateViewLayout(root, windowParams); } catch (Exception ignored) {}
-        } else if (windowParams != null) {
-            windowParams.width = show ? dp(310) : dp(104);
+            if (overlayAdded) {
+                try { windowManager.updateViewLayout(root, windowParams); } catch (Exception ignored) {}
+            }
         }
         root.requestLayout();
     }
