@@ -64,6 +64,7 @@ public class MainActivity extends Activity {
     private File currentAudioFile;
     private long segmentStartedAt;
     private volatile boolean listening;
+    private volatile String configuredBackendUrl = "";
 
     private final Runnable rotateSegment = new Runnable() {
         @Override public void run() {
@@ -84,7 +85,8 @@ public class MainActivity extends Activity {
         window.getDecorView().setSystemUiVisibility(0);
         buildUi();
         SharedPreferences prefs = getSharedPreferences("listener_prefs", MODE_PRIVATE);
-        backendInput.setText(prefs.getString("backend_url", ""));
+        configuredBackendUrl = prefs.getString("backend_url", "");
+        backendInput.setText(configuredBackendUrl);
         topicInput.setText(prefs.getString("meeting_topic", ""));
         updateButtons();
     }
@@ -239,6 +241,7 @@ public class MainActivity extends Activity {
     private void saveConfiguration() {
         String url = backendInput.getText().toString().trim();
         String topic = topicInput.getText().toString().trim();
+        configuredBackendUrl = url;
         getSharedPreferences("listener_prefs", MODE_PRIVATE).edit()
                 .putString("backend_url", url)
                 .putString("meeting_topic", topic)
@@ -247,7 +250,7 @@ public class MainActivity extends Activity {
     }
 
     private String baseUrl() {
-        String value = backendInput.getText().toString().trim();
+        String value = configuredBackendUrl == null ? "" : configuredBackendUrl.trim();
         while (value.endsWith("/")) value = value.substring(0, value.length() - 1);
         return value;
     }
@@ -316,13 +319,11 @@ public class MainActivity extends Activity {
             long elapsed = System.currentTimeMillis() - segmentStartedAt;
             if (elapsed < 800) {
                 activeRecorder.reset();
-                activeRecorder.release();
                 if (finished != null) finished.delete();
                 return null;
             }
             activeRecorder.stop();
             activeRecorder.reset();
-            activeRecorder.release();
             if (finished != null && finished.exists() && finished.length() > 1000) return finished;
             if (finished != null) finished.delete();
         } catch (RuntimeException e) {
