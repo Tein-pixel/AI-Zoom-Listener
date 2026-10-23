@@ -15,6 +15,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
+import android.graphics.LinearGradient;
+import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -26,6 +28,7 @@ import android.provider.Settings;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -47,6 +50,8 @@ public class FloatingAssistantService extends Service {
     private WindowManager.LayoutParams windowParams;
     private LinearLayout root;
     private LinearLayout topRow;
+    private LinearLayout headingBox;
+    private FrameLayout orbFrame;
     private LinearLayout panel;
     private OrbView orb;
     private TextView headline;
@@ -185,25 +190,25 @@ public class FloatingAssistantService extends Service {
     private void buildOverlay(String oldTranscript, String oldAnswer) {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(5), dp(5), dp(5), dp(5));
-        root.setBackground(glass(Color.argb(245, 13, 20, 37), Color.argb(236, 20, 36, 65),
-                Color.argb(210, 86, 132, 235), 28));
+        root.setPadding(0, 0, 0, 0);
+        root.setBackgroundColor(Color.TRANSPARENT);
 
         topRow = new LinearLayout(this);
         topRow.setOrientation(LinearLayout.HORIZONTAL);
         topRow.setGravity(Gravity.CENTER_VERTICAL);
-        topRow.setPadding(dp(4), dp(3), dp(4), dp(3));
-        root.addView(topRow, new LinearLayout.LayoutParams(-1, dp(70)));
+        topRow.setPadding(0, 0, 0, 0);
+        root.addView(topRow, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
-        FrameLayout orbFrame = new FrameLayout(this);
+        orbFrame = new FrameLayout(this);
         orb = new OrbView(this);
-        FrameLayout.LayoutParams orbParams = new FrameLayout.LayoutParams(dp(62), dp(62), Gravity.CENTER);
+        FrameLayout.LayoutParams orbParams = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.CENTER);
         orbFrame.addView(orb, orbParams);
-        topRow.addView(orbFrame, new LinearLayout.LayoutParams(dp(68), dp(68)));
+        topRow.addView(orbFrame, new LinearLayout.LayoutParams(dp(48), dp(48)));
         orbFrame.setOnTouchListener((view, event) -> handleOrbTouch(event));
 
-        LinearLayout headingBox = new LinearLayout(this);
+        headingBox = new LinearLayout(this);
         headingBox.setOrientation(LinearLayout.VERTICAL);
+        headingBox.setVisibility(View.GONE);
         headingBox.setGravity(Gravity.CENTER_VERTICAL);
         TextView brand = label("ORBIT AI", 12, Color.WHITE, true);
         brand.setLetterSpacing(0.11f);
@@ -222,14 +227,14 @@ public class FloatingAssistantService extends Service {
         panelButton.setBackground(glass(Color.argb(80, 75, 112, 189), Color.argb(50, 26, 45, 80),
                 Color.argb(100, 123, 161, 230), 18));
         topRow.addView(panelButton, new LinearLayout.LayoutParams(dp(36), dp(40)));
-        panelButton.setText("⋯");
+        panelButton.setText("⌄");
+        panelButton.setVisibility(View.GONE);
         panelButton.setOnClickListener(v -> expandPanel(!panelOpen));
 
         panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(12), dp(11), dp(12), dp(12));
-        panel.setBackground(glass(Color.argb(232, 15, 24, 43), Color.argb(222, 20, 31, 53),
-                Color.argb(150, 70, 103, 161), 23));
+        panel.setPadding(dp(10), dp(9), dp(10), dp(10));
+        panel.setBackgroundColor(Color.TRANSPARENT);
         panel.setVisibility(View.GONE);
         LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(-1, -2);
         panelParams.topMargin = dp(3);
@@ -242,8 +247,8 @@ public class FloatingAssistantService extends Service {
         TextView transcriptTitle = label("TRANSKRIP • BISA DIEDIT", 10, Color.rgb(126, 168, 255), true);
         transcriptTitle.setLetterSpacing(0.07f);
         LinearLayout.LayoutParams tt = new LinearLayout.LayoutParams(-1, -2);
-        tt.topMargin = dp(10);
-        tt.bottomMargin = dp(6);
+        tt.topMargin = dp(7);
+        tt.bottomMargin = dp(4);
         panel.addView(transcriptTitle, tt);
 
         transcript = new EditText(this);
@@ -256,12 +261,12 @@ public class FloatingAssistantService extends Service {
                 android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE |
                 android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         transcript.setSingleLine(false);
-        transcript.setMinLines(3);
-        transcript.setMaxLines(7);
-        transcript.setPadding(dp(11), dp(10), dp(11), dp(10));
-        transcript.setBackground(glass(Color.argb(185, 27, 41, 65), Color.argb(180, 16, 27, 47),
-                Color.argb(115, 78, 112, 171), 17));
-        panel.addView(transcript, new LinearLayout.LayoutParams(-1, -2));
+        transcript.setMinLines(2);
+        transcript.setMaxLines(4);
+        transcript.setPadding(dp(9), dp(7), dp(9), dp(7));
+        transcript.setBackground(glass(Color.rgb(28, 39, 59), Color.rgb(22, 32, 49),
+                Color.rgb(48, 63, 90), 13));
+        panel.addView(transcript, new LinearLayout.LayoutParams(-1, dp(78)));
         setTranscript(oldTranscript);
 
         transcript.addTextChangedListener(new TextWatcher() {
@@ -284,8 +289,8 @@ public class FloatingAssistantService extends Service {
         TextView answerTitle = label("SARAN AI", 10, Color.rgb(126, 168, 255), true);
         answerTitle.setLetterSpacing(0.08f);
         LinearLayout.LayoutParams at = new LinearLayout.LayoutParams(-1, -2);
-        at.topMargin = dp(12);
-        at.bottomMargin = dp(6);
+        at.topMargin = dp(8);
+        at.bottomMargin = dp(4);
         panel.addView(answerTitle, at);
 
         ScrollView answerScroll = new ScrollView(this);
@@ -296,19 +301,19 @@ public class FloatingAssistantService extends Service {
         answer.setTextIsSelectable(true);
         answer.setLineSpacing(dp(2), 1f);
         answerScroll.addView(answer, new ScrollView.LayoutParams(-1, -2));
-        panel.addView(answerScroll, new LinearLayout.LayoutParams(-1, dp(86)));
+        panel.addView(answerScroll, new LinearLayout.LayoutParams(-1, dp(66)));
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(36));
-        actionsParams.topMargin = dp(8);
+        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(32));
+        actionsParams.topMargin = dp(7);
         panel.addView(actions, actionsParams);
 
         TextView clear = label("Bersihkan teks", 11, Color.rgb(196, 211, 237), true);
         clear.setGravity(Gravity.CENTER);
-        clear.setBackground(glass(Color.argb(90, 49, 65, 94), Color.argb(60, 21, 34, 57),
-                Color.argb(100, 91, 113, 154), 13));
+        clear.setBackground(glass(Color.rgb(34, 47, 69), Color.rgb(25, 36, 55),
+                Color.rgb(54, 69, 94), 12));
         actions.addView(clear, new LinearLayout.LayoutParams(0, -1, 1f));
         clear.setOnClickListener(v -> {
             Intent clearIntent = new Intent(this, AudioListenerService.class);
@@ -320,15 +325,14 @@ public class FloatingAssistantService extends Service {
 
         TextView hide = label("Sembunyikan", 11, Color.rgb(196, 211, 237), true);
         hide.setGravity(Gravity.CENTER);
-        hide.setBackground(glass(Color.argb(60, 49, 65, 94), Color.argb(40, 21, 34, 57),
-                Color.argb(90, 91, 113, 154), 13));
+        hide.setBackgroundColor(Color.TRANSPARENT);
         LinearLayout.LayoutParams hideParams = new LinearLayout.LayoutParams(0, -1, 1f);
         hideParams.leftMargin = dp(7);
         actions.addView(hide, hideParams);
         hide.setOnClickListener(v -> expandPanel(false));
 
         windowParams = new WindowManager.LayoutParams(
-                dp(104),
+                dp(48),
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 Build.VERSION.SDK_INT >= 26
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -336,7 +340,7 @@ public class FloatingAssistantService extends Service {
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 android.graphics.PixelFormat.TRANSLUCENT);
         windowParams.gravity = Gravity.TOP | Gravity.RIGHT;
-        windowParams.x = dp(10);
+        windowParams.x = dp(12);
         windowParams.y = dp(190);
         windowParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
         if (!panelOpen) windowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
@@ -364,11 +368,26 @@ public class FloatingAssistantService extends Service {
                 return true;
             case MotionEvent.ACTION_UP:
                 if (!dragging) toggleListening();
+                else snapToEdge();
                 return true;
             case MotionEvent.ACTION_CANCEL:
                 return true;
         }
         return false;
+    }
+
+    private void snapToEdge() {
+        if (windowParams == null || !overlayAdded) return;
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        int target = windowParams.x < screenWidth / 2
+                ? dp(8) : Math.max(dp(8), screenWidth - windowParams.width - dp(8));
+        android.animation.ValueAnimator snap = android.animation.ValueAnimator.ofInt(windowParams.x, target);
+        snap.setDuration(190);
+        snap.addUpdateListener(value -> {
+            windowParams.x = (Integer) value.getAnimatedValue();
+            try { windowManager.updateViewLayout(root, windowParams); } catch (Exception ignored) {}
+        });
+        snap.start();
     }
 
     private void toggleListening() {
@@ -401,27 +420,56 @@ public class FloatingAssistantService extends Service {
         refreshOrb();
     }
 
+    private int compactPanelWidth() {
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        return Math.min(dp(260), Math.max(dp(232), screenWidth - dp(40)));
+    }
+
     private void expandPanel(boolean show) {
         if (panel == null || root == null) return;
         panelOpen = show;
         panel.setVisibility(show ? View.VISIBLE : View.GONE);
+        root.setPadding(show ? dp(6) : 0, show ? dp(6) : 0,
+                show ? dp(6) : 0, show ? dp(6) : 0);
         root.setBackground(show
-                ? glass(Color.argb(245, 13, 20, 37), Color.argb(236, 20, 36, 65),
-                    Color.argb(210, 86, 132, 235), 28)
-                : glass(Color.argb(8, 13, 20, 37), Color.argb(5, 20, 36, 65),
-                    Color.argb(20, 86, 132, 235), 28));
-        if (panelButton != null) panelButton.setText(show ? "⌄" : "⋯");
+                ? glass(Color.rgb(22, 31, 49), Color.rgb(13, 20, 34),
+                    Color.rgb(60, 78, 112), 23)
+                : null);
+        if (!show) root.setBackgroundColor(Color.TRANSPARENT);
+        if (headingBox != null) headingBox.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (panelButton != null) {
+            panelButton.setVisibility(show ? View.VISIBLE : View.GONE);
+            panelButton.setText("⌄");
+        }
+        if (topRow != null) {
+            topRow.setPadding(show ? dp(2) : 0, 0, show ? dp(2) : 0, 0);
+            ViewGroup.LayoutParams rowParams = topRow.getLayoutParams();
+            rowParams.width = show ? compactPanelWidth() - dp(12) : dp(48);
+            rowParams.height = show ? dp(50) : dp(48);
+            topRow.setLayoutParams(rowParams);
+        }
+        if (orbFrame != null) {
+            LinearLayout.LayoutParams orbParams = (LinearLayout.LayoutParams) orbFrame.getLayoutParams();
+            orbParams.width = show ? dp(46) : dp(48);
+            orbParams.height = show ? dp(46) : dp(48);
+            orbFrame.setLayoutParams(orbParams);
+            FrameLayout.LayoutParams inner = (FrameLayout.LayoutParams) orb.getLayoutParams();
+            inner.width = show ? dp(44) : dp(46);
+            inner.height = show ? dp(44) : dp(46);
+            orb.setLayoutParams(inner);
+        }
         if (headline != null) headline.setText(listening ? "Mendengarkan aktif" :
                 (waitingForAnswer ? "AI sedang berpikir" : "Tekan bola untuk mulai"));
-        if (windowParams != null && overlayAdded) {
-            windowParams.width = show ? dp(310) : dp(104);
+        if (windowParams != null) {
+            windowParams.width = show ? compactPanelWidth() : dp(48);
             if (show) windowParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
             else windowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-            try { windowManager.updateViewLayout(root, windowParams); } catch (Exception ignored) {}
-        } else if (windowParams != null) {
-            windowParams.width = show ? dp(310) : dp(104);
+            if (overlayAdded) {
+                try { windowManager.updateViewLayout(root, windowParams); } catch (Exception ignored) {}
+            }
         }
         root.requestLayout();
+        root.animate().setDuration(160).scaleX(show ? 1f : 0.98f).scaleY(show ? 1f : 0.98f).start();
     }
 
     private void showOverlay() {
@@ -429,6 +477,10 @@ public class FloatingAssistantService extends Service {
         try {
             windowManager.addView(root, windowParams);
             overlayAdded = true;
+            root.setAlpha(0f);
+            root.setScaleX(0.92f);
+            root.setScaleY(0.92f);
+            root.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180).start();
             if (panelOpen) expandPanel(true);
         } catch (Exception e) {
             getSharedPreferences("listener_prefs", MODE_PRIVATE).edit()
@@ -509,81 +561,85 @@ public class FloatingAssistantService extends Service {
 
         OrbView(Context context) {
             super(context);
-            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
             animator = android.animation.ValueAnimator.ofFloat(0f, 1f);
-            animator.setDuration(1550);
+            animator.setDuration(1450);
             animator.setRepeatCount(android.animation.ValueAnimator.INFINITE);
             animator.addUpdateListener(a -> {
                 phase = (Float) a.getAnimatedValue();
                 invalidate();
             });
-            animator.start();
         }
 
         void setMode(int next) {
-            if (mode != next) { mode = next; invalidate(); }
+            if (mode == next) return;
+            mode = next;
+            if (mode == 0) {
+                animator.cancel();
+                phase = 0f;
+            } else if (!animator.isStarted()) {
+                animator.start();
+            }
+            invalidate();
         }
 
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             float cx = getWidth() / 2f;
             float cy = getHeight() / 2f;
-            float radius = Math.min(getWidth(), getHeight()) * 0.34f;
-            int core = mode == 1 ? Color.rgb(38, 149, 255) :
-                    (mode == 2 ? Color.rgb(156, 105, 255) : Color.rgb(73, 129, 255));
-            if (mode != 2) {
+            float r = Math.min(getWidth(), getHeight()) * 0.43f;
+
+            int top = mode == 1 ? Color.rgb(111, 205, 255)
+                    : mode == 2 ? Color.rgb(194, 160, 255) : Color.rgb(126, 166, 255);
+            int bottom = mode == 1 ? Color.rgb(25, 119, 222)
+                    : mode == 2 ? Color.rgb(107, 76, 210) : Color.rgb(57, 98, 213);
+
+            // One restrained pulse ring while active; the idle control remains still.
+            if (mode != 0) {
+                paint.setShader(null);
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(dp(1.5f));
-                paint.setColor(Color.argb((int)(65 * (1f - phase)), 99, 178, 255));
-                canvas.drawCircle(cx, cy, radius * (1.25f + phase * 0.55f), paint);
-                paint.setColor(Color.argb((int)(35 * phase), 132, 198, 255));
-                canvas.drawCircle(cx, cy, radius * (1.45f + phase * 0.45f), paint);
-            } else {
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(dp(2));
-                paint.setColor(Color.argb(110, 181, 151, 255));
-                canvas.drawArc(cx - radius * 1.42f, cy - radius * 1.42f,
-                        cx + radius * 1.42f, cy + radius * 1.42f,
-                        phase * 360f, 235f, false, paint);
+                paint.setStrokeWidth(dp(1.2f));
+                int alpha = (int) (96 * (1f - phase));
+                paint.setColor(Color.argb(alpha,
+                        mode == 2 ? 183 : 100,
+                        mode == 2 ? 151 : 190,
+                        255));
+                canvas.drawCircle(cx, cy, r * (1.04f + 0.12f * phase), paint);
             }
+
             paint.setStyle(Paint.Style.FILL);
-            paint.setShader(new RadialGradient(cx - radius * 0.25f, cy - radius * 0.4f,
-                    radius * 2.1f,
-                    new int[]{Color.argb(125, 98, 180, 255), Color.argb(20, 22, 58, 128), Color.TRANSPARENT},
-                    null, Shader.TileMode.CLAMP));
-            canvas.drawCircle(cx, cy, radius * 1.75f, paint);
+            paint.setColor(Color.WHITE);
+            paint.setShader(new LinearGradient(cx - r, cy - r, cx + r, cy + r,
+                    new int[]{top, bottom}, null, Shader.TileMode.CLAMP));
+            canvas.drawCircle(cx, cy, r, paint);
             paint.setShader(null);
-            paint.setShadowLayer(dp(8), 0, dp(1), Color.argb(170, Color.red(core), Color.green(core), Color.blue(core)));
-            paint.setShader(new RadialGradient(cx - radius * 0.35f, cy - radius * 0.45f,
-                    radius * 1.55f,
-                    new int[]{Color.rgb(180, 225, 255), core, Color.rgb(11, 29, 72)},
-                    new float[]{0f, 0.40f, 1f}, Shader.TileMode.CLAMP));
-            canvas.drawCircle(cx, cy, radius, paint);
-            paint.setShader(null);
-            paint.clearShadowLayer();
+
+            // Microphone glyph follows the familiar Material-style silhouette;
+            // no decorative face or oversized orbital artwork.
+            paint.setColor(Color.WHITE);
+            paint.setStyle(Paint.Style.FILL);
+            float micWidth = r * 0.31f;
+            float micTop = cy - r * 0.48f;
+            float micBottom = cy + r * 0.12f;
+            canvas.drawRoundRect(cx - micWidth / 2f, micTop,
+                    cx + micWidth / 2f, micBottom, micWidth / 2f, micWidth / 2f, paint);
+
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(dp(1));
-            paint.setColor(Color.argb(190, 204, 231, 255));
-            canvas.drawCircle(cx, cy, radius, paint);
+            paint.setStrokeWidth(Math.max(dp(1.6f), r * 0.085f));
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            RectF cradle = new RectF(cx - r * 0.43f, cy - r * 0.25f,
+                    cx + r * 0.43f, cy + r * 0.50f);
+            canvas.drawArc(cradle, 0f, 180f, false, paint);
+            canvas.drawLine(cx, cy + r * 0.49f, cx, cy + r * 0.66f, paint);
+            canvas.drawLine(cx - r * 0.22f, cy + r * 0.67f,
+                    cx + r * 0.22f, cy + r * 0.67f, paint);
+
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(dp(0.8f));
+            paint.setColor(Color.argb(135, 222, 237, 255));
+            paint.setShader(null);
+            canvas.drawCircle(cx, cy, r, paint);
             paint.setStyle(Paint.Style.FILL);
-            if (mode == 1) {
-                for (int i = 0; i < 5; i++) {
-                    float height = dp(5) + dp(10) * (0.5f + 0.5f *
-                            (float)Math.sin((phase * Math.PI * 2) + i * 1.15f));
-                    paint.setColor(Color.WHITE);
-                    canvas.drawRoundRect(cx - dp(12) + i * dp(6), cy - height / 2,
-                            cx - dp(8) + i * dp(6), cy + height / 2, dp(3), dp(3), paint);
-                }
-            } else {
-                paint.setColor(Color.argb(235, 245, 251, 255));
-                canvas.drawCircle(cx - radius * 0.29f, cy - radius * 0.03f, dp(2.2f), paint);
-                canvas.drawCircle(cx + radius * 0.29f, cy - radius * 0.03f, dp(2.2f), paint);
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(dp(1.5f));
-                canvas.drawArc(cx - radius * 0.24f, cy + radius * 0.10f,
-                        cx + radius * 0.24f, cy + radius * 0.54f,
-                        10, 160, false, paint);
-            }
+            paint.setStrokeCap(Paint.Cap.BUTT);
         }
 
         @Override protected void onDetachedFromWindow() {
