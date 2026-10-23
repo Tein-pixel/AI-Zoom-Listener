@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     : "https://integrate.api.nvidia.com/v1/chat/completions";
   const model = useOpenRouter
     ? (process.env.OPENROUTER_MODEL || "openrouter/auto")
-    : (process.env.NVIDIA_MODEL || "qwen/qwen3-next-80b-a3b-instruct");
+    : (process.env.NVIDIA_MODEL || "openai/gpt-oss-20b");
   const system = [
     "Kamu adalah asisten pendamping rapat dan belajar berbahasa Indonesia.",
     "Gunakan transkrip sebagai konteks yang mungkin tidak sempurna; jangan mengarang fakta atau mengaku mendengar bagian yang tidak tersedia.",
