@@ -234,8 +234,7 @@ public class FloatingAssistantService extends Service {
         panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(10), dp(9), dp(10), dp(10));
-        panel.setBackground(glass(Color.argb(232, 15, 24, 43), Color.argb(222, 20, 31, 53),
-                Color.argb(150, 70, 103, 161), 23));
+        panel.setBackgroundColor(Color.TRANSPARENT);
         panel.setVisibility(View.GONE);
         LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(-1, -2);
         panelParams.topMargin = dp(3);
@@ -265,8 +264,8 @@ public class FloatingAssistantService extends Service {
         transcript.setMinLines(2);
         transcript.setMaxLines(4);
         transcript.setPadding(dp(9), dp(7), dp(9), dp(7));
-        transcript.setBackground(glass(Color.argb(185, 27, 41, 65), Color.argb(180, 16, 27, 47),
-                Color.argb(115, 78, 112, 171), 17));
+        transcript.setBackground(glass(Color.rgb(28, 39, 59), Color.rgb(22, 32, 49),
+                Color.rgb(48, 63, 90), 13));
         panel.addView(transcript, new LinearLayout.LayoutParams(-1, dp(78)));
         setTranscript(oldTranscript);
 
@@ -313,8 +312,8 @@ public class FloatingAssistantService extends Service {
 
         TextView clear = label("Bersihkan teks", 11, Color.rgb(196, 211, 237), true);
         clear.setGravity(Gravity.CENTER);
-        clear.setBackground(glass(Color.argb(90, 49, 65, 94), Color.argb(60, 21, 34, 57),
-                Color.argb(100, 91, 113, 154), 13));
+        clear.setBackground(glass(Color.rgb(34, 47, 69), Color.rgb(25, 36, 55),
+                Color.rgb(54, 69, 94), 12));
         actions.addView(clear, new LinearLayout.LayoutParams(0, -1, 1f));
         clear.setOnClickListener(v -> {
             Intent clearIntent = new Intent(this, AudioListenerService.class);
@@ -326,8 +325,7 @@ public class FloatingAssistantService extends Service {
 
         TextView hide = label("Sembunyikan", 11, Color.rgb(196, 211, 237), true);
         hide.setGravity(Gravity.CENTER);
-        hide.setBackground(glass(Color.argb(60, 49, 65, 94), Color.argb(40, 21, 34, 57),
-                Color.argb(90, 91, 113, 154), 13));
+        hide.setBackgroundColor(Color.TRANSPARENT);
         LinearLayout.LayoutParams hideParams = new LinearLayout.LayoutParams(0, -1, 1f);
         hideParams.leftMargin = dp(7);
         actions.addView(hide, hideParams);
@@ -370,11 +368,26 @@ public class FloatingAssistantService extends Service {
                 return true;
             case MotionEvent.ACTION_UP:
                 if (!dragging) toggleListening();
+                else snapToEdge();
                 return true;
             case MotionEvent.ACTION_CANCEL:
                 return true;
         }
         return false;
+    }
+
+    private void snapToEdge() {
+        if (windowParams == null || !overlayAdded) return;
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        int target = windowParams.x < screenWidth / 2
+                ? dp(8) : Math.max(dp(8), screenWidth - windowParams.width - dp(8));
+        android.animation.ValueAnimator snap = android.animation.ValueAnimator.ofInt(windowParams.x, target);
+        snap.setDuration(190);
+        snap.addUpdateListener(value -> {
+            windowParams.x = (Integer) value.getAnimatedValue();
+            try { windowManager.updateViewLayout(root, windowParams); } catch (Exception ignored) {}
+        });
+        snap.start();
     }
 
     private void toggleListening() {
@@ -456,6 +469,7 @@ public class FloatingAssistantService extends Service {
             }
         }
         root.requestLayout();
+        root.animate().setDuration(160).scaleX(show ? 1f : 0.98f).scaleY(show ? 1f : 0.98f).start();
     }
 
     private void showOverlay() {
@@ -463,6 +477,10 @@ public class FloatingAssistantService extends Service {
         try {
             windowManager.addView(root, windowParams);
             overlayAdded = true;
+            root.setAlpha(0f);
+            root.setScaleX(0.92f);
+            root.setScaleY(0.92f);
+            root.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180).start();
             if (panelOpen) expandPanel(true);
         } catch (Exception e) {
             getSharedPreferences("listener_prefs", MODE_PRIVATE).edit()
