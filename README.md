@@ -52,3 +52,11 @@ After the first successful GitHub Actions run:
 - POST /api/answer with transcript, context, and optional topic; returns answer.
 
 This is an unsigned debug APK for testing, not a Play Store release.
+
+
+## Current deployment
+
+- Backend URL: `https://ai-zoom-listener.vercel.app`
+- Health endpoint: `GET /health` (reports whether API keys are configured).
+- The deployment can build without provider keys, but AI requests return a clear configuration error until keys are added in Vercel Project Settings → Environment Variables.
+- Set `GEMINI_API_KEY` for transcription and either `NVIDIA_API_KEY` or `OPENROUTER_API_KEY` for response suggestions, then redeploy.
