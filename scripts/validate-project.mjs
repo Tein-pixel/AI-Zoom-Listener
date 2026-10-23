@@ -13,6 +13,7 @@ const requiredFiles = [
   "api/transcribe.js",
   "api/answer.js",
   "api/health.js",
+  "index.js",
   "vercel.json",
   ".github/workflows/build-apk.yml"
 ];
@@ -30,6 +31,7 @@ const transcribe = readFileSync("api/transcribe.js", "utf8");
 const answer = readFileSync("api/answer.js", "utf8");
 const workflow = readFileSync(".github/workflows/build-apk.yml", "utf8");
 const health = readFileSync("api/health.js", "utf8");
+const router = readFileSync("index.js", "utf8");
 const landing = readFileSync("index.html", "utf8");
 const vercel = readFileSync("vercel.json", "utf8");
 
@@ -57,6 +59,9 @@ assert.match(service, /\/api\/answer/);
 assert.match(health, /AI-Zoom Listener API/);
 assert.match(health, /GEMINI_API_KEY/);
 assert.match(health, /OPENROUTER_API_KEY/);
+assert.match(router, /AI-Zoom Listener API/);
+assert.match(router, /res\.end/);
+assert.match(router, /new Response/);
 assert.match(landing, /AI-Zoom Listener API/);
 assert.ok(vercel.includes('"destination": "/index.html"'));
 assert.match(vercel, /maxDuration/);
