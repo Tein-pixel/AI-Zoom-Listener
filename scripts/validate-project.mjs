@@ -12,7 +12,7 @@ const requiredFiles = [
   "app/src/main/java/com/teinzz/aizoomlistener/FloatingAssistantService.java",
   "api/transcribe.js",
   "api/answer.js",
-  "index.js",
+  "api/health.js",
   "vercel.json",
   ".github/workflows/build-apk.yml"
 ];
@@ -29,7 +29,8 @@ const floating = readFileSync("app/src/main/java/com/teinzz/aizoomlistener/Float
 const transcribe = readFileSync("api/transcribe.js", "utf8");
 const answer = readFileSync("api/answer.js", "utf8");
 const workflow = readFileSync(".github/workflows/build-apk.yml", "utf8");
-const router = readFileSync("index.js", "utf8");
+const health = readFileSync("api/health.js", "utf8");
+const landing = readFileSync("index.html", "utf8");
 const vercel = readFileSync("vercel.json", "utf8");
 
 assert.match(gradle, /namespace\s+['"]com\.teinzz\.aizoomlistener['"]/);
@@ -53,8 +54,11 @@ assert.match(service, /FOREGROUND_SERVICE_TYPE_MICROPHONE/);
 assert.match(service, /ACTION_EDIT_TRANSCRIPT/);
 assert.match(service, /\/api\/transcribe/);
 assert.match(service, /\/api\/answer/);
-assert.ok(router.includes("/api/transcribe"));
-assert.ok(router.includes("/api/answer"));
+assert.match(health, /AI-Zoom Listener API/);
+assert.match(health, /GEMINI_API_KEY/);
+assert.match(health, /OPENROUTER_API_KEY/);
+assert.match(landing, /AI-Zoom Listener API/);
+assert.ok(vercel.includes('"destination": "/index.html"'));
 assert.match(vercel, /maxDuration/);
 assert.match(transcribe, /GEMINI_API_KEY/);
 assert.match(transcribe, /gemini-3\.8-flash/);
