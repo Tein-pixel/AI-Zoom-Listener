@@ -225,6 +225,7 @@ public class FloatingAssistantService extends Service {
         panelButton.setBackground(glass(Color.argb(80, 75, 112, 189), Color.argb(50, 26, 45, 80),
                 Color.argb(100, 123, 161, 230), 18));
         topRow.addView(panelButton, new LinearLayout.LayoutParams(dp(36), dp(40)));
+        panelButton.setText("⋯");
         panelButton.setOnClickListener(v -> expandPanel(!panelOpen));
 
         panel = new LinearLayout(this);
@@ -232,6 +233,7 @@ public class FloatingAssistantService extends Service {
         panel.setPadding(dp(12), dp(11), dp(12), dp(12));
         panel.setBackground(glass(Color.argb(232, 15, 24, 43), Color.argb(222, 20, 31, 53),
                 Color.argb(150, 70, 103, 161), 23));
+        panel.setVisibility(View.GONE);
         LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(-1, -2);
         panelParams.topMargin = dp(3);
         root.addView(panel, panelParams);
@@ -406,6 +408,11 @@ public class FloatingAssistantService extends Service {
         if (panel == null || root == null) return;
         panelOpen = show;
         panel.setVisibility(show ? View.VISIBLE : View.GONE);
+        root.setBackground(show
+                ? glass(Color.argb(245, 13, 20, 37), Color.argb(236, 20, 36, 65),
+                    Color.argb(210, 86, 132, 235), 28)
+                : glass(Color.argb(8, 13, 20, 37), Color.argb(5, 20, 36, 65),
+                    Color.argb(20, 86, 132, 235), 28));
         if (panelButton != null) panelButton.setText(show ? "⌄" : "⋯");
         if (headline != null) headline.setText(listening ? "Mendengarkan aktif" :
                 (waitingForAnswer ? "AI sedang berpikir" : "Tekan bola untuk mulai"));
