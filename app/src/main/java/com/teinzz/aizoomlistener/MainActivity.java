@@ -90,7 +90,7 @@ public class MainActivity extends Activity {
         window.getDecorView().setSystemUiVisibility(0);
         buildUi();
         SharedPreferences prefs = getSharedPreferences("listener_prefs", MODE_PRIVATE);
-        configuredBackendUrl = prefs.getString("backend_url", "");
+        configuredBackendUrl = prefs.getString("backend_url", "https://ai-zoom-listener.vercel.app");
         backendInput.setText(configuredBackendUrl);
         topicInput.setText(prefs.getString("meeting_topic", ""));
         updateButtons();
@@ -116,7 +116,7 @@ public class MainActivity extends Activity {
 
         LinearLayout configCard = card(page);
         addLabel(configCard, "URL backend Vercel");
-        backendInput = edit("https://nama-proyek.vercel.app", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        backendInput = edit("https://ai-zoom-listener.vercel.app", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         configCard.addView(backendInput, params(-1, dp(50)));
         addLabel(configCard, "Topik rapat (opsional)");
         topicInput = edit("Contoh: materi biologi, proyek, atau wawancara", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
@@ -266,7 +266,7 @@ public class MainActivity extends Activity {
 
     private void startListening() {
         saveConfiguration();
-        if (!baseUrl().startsWith("https://") || baseUrl().contains("nama-proyek.vercel.app")) {
+        if (!baseUrl().startsWith("https://")) {
             setStatus("Isi URL backend Vercel yang sudah aktif terlebih dahulu.");
             return;
         }
