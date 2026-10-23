@@ -22,7 +22,7 @@ The app records through the phone's microphone. It does not guarantee that it ca
 3. Add the following Environment Variables in the Vercel project settings, for Production (and Preview too if needed):
    - GEMINI_API_KEY — required for audio transcription.
    - NVIDIA_API_KEY — recommended for response suggestions from NVIDIA NIM.
-   - NVIDIA_MODEL — optional; default is qwen/qwen3-next-80b-a3b-instruct.
+   - NVIDIA_MODEL — optional; default is openai/gpt-oss-20b.
    - OPENROUTER_API_KEY — optional alternative if no NVIDIA key is set.
    - OPENROUTER_MODEL — optional; default is openrouter/auto.
 4. Redeploy after adding environment variables.
