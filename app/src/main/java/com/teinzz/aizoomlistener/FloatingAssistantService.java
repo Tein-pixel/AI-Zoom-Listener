@@ -15,6 +15,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
+import android.graphics.LinearGradient;
+import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -26,6 +28,7 @@ import android.provider.Settings;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -540,81 +543,85 @@ public class FloatingAssistantService extends Service {
 
         OrbView(Context context) {
             super(context);
-            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
             animator = android.animation.ValueAnimator.ofFloat(0f, 1f);
-            animator.setDuration(1550);
+            animator.setDuration(1450);
             animator.setRepeatCount(android.animation.ValueAnimator.INFINITE);
             animator.addUpdateListener(a -> {
                 phase = (Float) a.getAnimatedValue();
                 invalidate();
             });
-            animator.start();
         }
 
         void setMode(int next) {
-            if (mode != next) { mode = next; invalidate(); }
+            if (mode == next) return;
+            mode = next;
+            if (mode == 0) {
+                animator.cancel();
+                phase = 0f;
+            } else if (!animator.isStarted()) {
+                animator.start();
+            }
+            invalidate();
         }
 
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             float cx = getWidth() / 2f;
             float cy = getHeight() / 2f;
-            float radius = Math.min(getWidth(), getHeight()) * 0.34f;
-            int core = mode == 1 ? Color.rgb(38, 149, 255) :
-                    (mode == 2 ? Color.rgb(156, 105, 255) : Color.rgb(73, 129, 255));
-            if (mode != 2) {
+            float r = Math.min(getWidth(), getHeight()) * 0.43f;
+
+            int top = mode == 1 ? Color.rgb(111, 205, 255)
+                    : mode == 2 ? Color.rgb(194, 160, 255) : Color.rgb(126, 166, 255);
+            int bottom = mode == 1 ? Color.rgb(25, 119, 222)
+                    : mode == 2 ? Color.rgb(107, 76, 210) : Color.rgb(57, 98, 213);
+
+            // One restrained pulse ring while active; the idle control remains still.
+            if (mode != 0) {
+                paint.setShader(null);
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(dp(1.5f));
-                paint.setColor(Color.argb((int)(65 * (1f - phase)), 99, 178, 255));
-                canvas.drawCircle(cx, cy, radius * (1.25f + phase * 0.55f), paint);
-                paint.setColor(Color.argb((int)(35 * phase), 132, 198, 255));
-                canvas.drawCircle(cx, cy, radius * (1.45f + phase * 0.45f), paint);
-            } else {
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(dp(2));
-                paint.setColor(Color.argb(110, 181, 151, 255));
-                canvas.drawArc(cx - radius * 1.42f, cy - radius * 1.42f,
-                        cx + radius * 1.42f, cy + radius * 1.42f,
-                        phase * 360f, 235f, false, paint);
+                paint.setStrokeWidth(dp(1.2f));
+                int alpha = (int) (96 * (1f - phase));
+                paint.setColor(Color.argb(alpha,
+                        mode == 2 ? 183 : 100,
+                        mode == 2 ? 151 : 190,
+                        255));
+                canvas.drawCircle(cx, cy, r * (1.04f + 0.12f * phase), paint);
             }
+
             paint.setStyle(Paint.Style.FILL);
-            paint.setShader(new RadialGradient(cx - radius * 0.25f, cy - radius * 0.4f,
-                    radius * 2.1f,
-                    new int[]{Color.argb(125, 98, 180, 255), Color.argb(20, 22, 58, 128), Color.TRANSPARENT},
-                    null, Shader.TileMode.CLAMP));
-            canvas.drawCircle(cx, cy, radius * 1.75f, paint);
+            paint.setColor(Color.WHITE);
+            paint.setShader(new LinearGradient(cx - r, cy - r, cx + r, cy + r,
+                    new int[]{top, bottom}, null, Shader.TileMode.CLAMP));
+            canvas.drawCircle(cx, cy, r, paint);
             paint.setShader(null);
-            paint.setShadowLayer(dp(8), 0, dp(1), Color.argb(170, Color.red(core), Color.green(core), Color.blue(core)));
-            paint.setShader(new RadialGradient(cx - radius * 0.35f, cy - radius * 0.45f,
-                    radius * 1.55f,
-                    new int[]{Color.rgb(180, 225, 255), core, Color.rgb(11, 29, 72)},
-                    new float[]{0f, 0.40f, 1f}, Shader.TileMode.CLAMP));
-            canvas.drawCircle(cx, cy, radius, paint);
-            paint.setShader(null);
-            paint.clearShadowLayer();
+
+            // Microphone glyph follows the familiar Material-style silhouette;
+            // no decorative face or oversized orbital artwork.
+            paint.setColor(Color.WHITE);
+            paint.setStyle(Paint.Style.FILL);
+            float micWidth = r * 0.31f;
+            float micTop = cy - r * 0.48f;
+            float micBottom = cy + r * 0.12f;
+            canvas.drawRoundRect(cx - micWidth / 2f, micTop,
+                    cx + micWidth / 2f, micBottom, micWidth / 2f, micWidth / 2f, paint);
+
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(dp(1));
-            paint.setColor(Color.argb(190, 204, 231, 255));
-            canvas.drawCircle(cx, cy, radius, paint);
+            paint.setStrokeWidth(Math.max(dp(1.6f), r * 0.085f));
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            RectF cradle = new RectF(cx - r * 0.43f, cy - r * 0.25f,
+                    cx + r * 0.43f, cy + r * 0.50f);
+            canvas.drawArc(cradle, 0f, 180f, false, paint);
+            canvas.drawLine(cx, cy + r * 0.49f, cx, cy + r * 0.66f, paint);
+            canvas.drawLine(cx - r * 0.22f, cy + r * 0.67f,
+                    cx + r * 0.22f, cy + r * 0.67f, paint);
+
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(dp(0.8f));
+            paint.setColor(Color.argb(135, 222, 237, 255));
+            paint.setShader(null);
+            canvas.drawCircle(cx, cy, r, paint);
             paint.setStyle(Paint.Style.FILL);
-            if (mode == 1) {
-                for (int i = 0; i < 5; i++) {
-                    float height = dp(5) + dp(10) * (0.5f + 0.5f *
-                            (float)Math.sin((phase * Math.PI * 2) + i * 1.15f));
-                    paint.setColor(Color.WHITE);
-                    canvas.drawRoundRect(cx - dp(12) + i * dp(6), cy - height / 2,
-                            cx - dp(8) + i * dp(6), cy + height / 2, dp(3), dp(3), paint);
-                }
-            } else {
-                paint.setColor(Color.argb(235, 245, 251, 255));
-                canvas.drawCircle(cx - radius * 0.29f, cy - radius * 0.03f, dp(2.2f), paint);
-                canvas.drawCircle(cx + radius * 0.29f, cy - radius * 0.03f, dp(2.2f), paint);
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(dp(1.5f));
-                canvas.drawArc(cx - radius * 0.24f, cy + radius * 0.10f,
-                        cx + radius * 0.24f, cy + radius * 0.54f,
-                        10, 160, false, paint);
-            }
+            paint.setStrokeCap(Paint.Cap.BUTT);
         }
 
         @Override protected void onDetachedFromWindow() {
