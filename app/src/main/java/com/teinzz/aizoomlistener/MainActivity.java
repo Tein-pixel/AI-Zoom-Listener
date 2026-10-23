@@ -91,6 +91,26 @@ public class MainActivity extends Activity {
         backendP.topMargin = dp(8);
         card.addView(backendInput, backendP);
 
+        TextView apiKeyInfo = label(
+                "API key tidak dimasukkan di APK. Atur di Vercel → Project Settings → Environment Variables: GEMINI_API_KEY untuk transkrip, lalu NVIDIA_API_KEY atau OPENROUTER_API_KEY untuk jawaban AI. Setelah menambahkan key, lakukan Redeploy.",
+                11, Color.rgb(169, 189, 221), false);
+        apiKeyInfo.setLineSpacing(dp(2), 1f);
+        LinearLayout.LayoutParams apiKeyInfoP = params(-1, -2);
+        apiKeyInfoP.topMargin = dp(10);
+        card.addView(apiKeyInfo, apiKeyInfoP);
+
+        TextView openApiSettings = label("Buka pengaturan API key di Vercel ↗", 12, Color.rgb(126, 168, 255), true);
+        openApiSettings.setPadding(0, dp(9), 0, 0);
+        openApiSettings.setOnClickListener(v -> {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://vercel.com/rnr10/ai-zoom-listener/settings/environment-variables")));
+            } catch (Exception ignored) {
+                statusView.setText("Buka Vercel → Project Settings → Environment Variables.");
+            }
+        });
+        card.addView(openApiSettings, params(-1, -2));
+
         TextView topicLabel = label("TOPIK / KONTEKS (OPSIONAL)", 10, MUTED, true);
         LinearLayout.LayoutParams topicLabelP = params(-1, -2);
         topicLabelP.topMargin = dp(15);
