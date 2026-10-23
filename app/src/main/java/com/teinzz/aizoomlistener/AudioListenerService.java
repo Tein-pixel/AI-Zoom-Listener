@@ -164,7 +164,7 @@ public class AudioListenerService extends Service {
         return builder
                 .setSmallIcon(android.R.drawable.ic_btn_speak_now)
                 .setContentTitle("AI-Zoom Listener sedang aktif")
-                .setContentText("Mendengarkan melalui mikrofon dan memproses audio per 12 detik.")
+                .setContentText("Mendengarkan melalui mikrofon; transkrip diperbarui berkala. Tekan bola untuk berhenti dan meminta jawaban.")
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .setOngoing(true)
                 .setContentIntent(pendingIntent)
