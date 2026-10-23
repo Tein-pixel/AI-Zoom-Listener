@@ -110,7 +110,7 @@ public class FloatingAssistantService extends Service {
         SharedPreferences prefs = getSharedPreferences("listener_prefs", MODE_PRIVATE);
         backendUrl = prefs.getString("backend_url", backendUrl);
         meetingTopic = prefs.getString("meeting_topic", "");
-        listening = prefs.getBoolean("is_listening", false);
+        listening = false;
         String oldAnswer = prefs.getString("last_answer", "");
         String oldTranscript = prefs.getString("transcript_history", "");
         registerUpdates();
@@ -329,7 +329,7 @@ public class FloatingAssistantService extends Service {
         hide.setOnClickListener(v -> expandPanel(false));
 
         windowParams = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                dp(104),
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 Build.VERSION.SDK_INT >= 26
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -410,9 +410,12 @@ public class FloatingAssistantService extends Service {
         if (headline != null) headline.setText(listening ? "Mendengarkan aktif" :
                 (waitingForAnswer ? "AI sedang berpikir" : "Tekan bola untuk mulai"));
         if (windowParams != null && overlayAdded) {
+            windowParams.width = show ? dp(310) : dp(104);
             if (show) windowParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
             else windowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
             try { windowManager.updateViewLayout(root, windowParams); } catch (Exception ignored) {}
+        } else if (windowParams != null) {
+            windowParams.width = show ? dp(310) : dp(104);
         }
         root.requestLayout();
     }
