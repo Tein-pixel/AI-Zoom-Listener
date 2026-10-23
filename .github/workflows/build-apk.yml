@@ -38,6 +38,9 @@ jobs:
           node --check api/transcribe.js
           node --check api/answer.js
 
+      - name: Validate required project configuration
+        run: node scripts/validate-project.mjs
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
