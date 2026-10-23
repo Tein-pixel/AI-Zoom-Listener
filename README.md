@@ -54,6 +54,10 @@ After the first successful GitHub Actions run:
 This is an unsigned debug APK for testing, not a Play Store release.
 
 
+## Automated checks
+
+The GitHub Actions workflow validates Android package configuration, foreground microphone service wiring, Vercel routes, and backend provider configuration before compiling the APK.
+
 ## Current deployment
 
 - Backend URL: `https://ai-zoom-listener.vercel.app`
