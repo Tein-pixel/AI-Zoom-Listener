@@ -11,6 +11,8 @@ const requiredFiles = [
   "app/src/main/java/com/teinzz/aizoomlistener/AudioListenerService.java",
   "api/transcribe.js",
   "api/answer.js",
+  "index.js",
+  "vercel.json",
   ".github/workflows/build-apk.yml"
 ];
 
@@ -25,6 +27,8 @@ const service = readFileSync("app/src/main/java/com/teinzz/aizoomlistener/AudioL
 const transcribe = readFileSync("api/transcribe.js", "utf8");
 const answer = readFileSync("api/answer.js", "utf8");
 const workflow = readFileSync(".github/workflows/build-apk.yml", "utf8");
+const router = readFileSync("index.js", "utf8");
+const vercel = readFileSync("vercel.json", "utf8");
 
 assert.match(gradle, /namespace\s+['"]com\.teinzz\.aizoomlistener['"]/);
 assert.match(gradle, /applicationId\s+['"]com\.teinzz\.aizoomlistener['"]/);
@@ -38,6 +42,9 @@ assert.match(activity, /startForegroundService/);
 assert.match(service, /FOREGROUND_SERVICE_TYPE_MICROPHONE/);
 assert.match(service, /\/api\/transcribe/);
 assert.match(service, /\/api\/answer/);
+assert.match(router, /api\\/transcribe/);
+assert.match(router, /api\\/answer/);
+assert.match(vercel, /maxDuration/);
 assert.match(transcribe, /GEMINI_API_KEY/);
 assert.match(transcribe, /gemini-3\.8-flash/);
 assert.match(answer, /NVIDIA_API_KEY/);
