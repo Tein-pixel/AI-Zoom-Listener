@@ -9,6 +9,7 @@ const requiredFiles = [
   "app/src/main/AndroidManifest.xml",
   "app/src/main/java/com/teinzz/aizoomlistener/MainActivity.java",
   "app/src/main/java/com/teinzz/aizoomlistener/AudioListenerService.java",
+  "app/src/main/java/com/teinzz/aizoomlistener/FloatingAssistantService.java",
   "api/transcribe.js",
   "api/answer.js",
   "index.js",
@@ -24,6 +25,7 @@ const gradle = readFileSync("app/build.gradle", "utf8");
 const manifest = readFileSync("app/src/main/AndroidManifest.xml", "utf8");
 const activity = readFileSync("app/src/main/java/com/teinzz/aizoomlistener/MainActivity.java", "utf8");
 const service = readFileSync("app/src/main/java/com/teinzz/aizoomlistener/AudioListenerService.java", "utf8");
+const floating = readFileSync("app/src/main/java/com/teinzz/aizoomlistener/FloatingAssistantService.java", "utf8");
 const transcribe = readFileSync("api/transcribe.js", "utf8");
 const answer = readFileSync("api/answer.js", "utf8");
 const workflow = readFileSync(".github/workflows/build-apk.yml", "utf8");
@@ -35,11 +37,20 @@ assert.match(gradle, /applicationId\s+['"]com\.teinzz\.aizoomlistener['"]/);
 assert.match(gradle, /minSdk\s+29/);
 assert.match(manifest, /android\.permission\.RECORD_AUDIO/);
 assert.match(manifest, /android\.permission\.FOREGROUND_SERVICE_MICROPHONE/);
+assert.match(manifest, /android\.permission\.SYSTEM_ALERT_WINDOW/);
+assert.match(manifest, /android\.permission\.FOREGROUND_SERVICE_SPECIAL_USE/);
 assert.match(manifest, /foregroundServiceType="microphone"/);
+assert.match(manifest, /foregroundServiceType="specialUse"/);
 assert.match(manifest, /android:name="\.AudioListenerService"/);
-assert.match(activity, /AudioListenerService\.ACTION_START/);
+assert.match(manifest, /android:name="\.FloatingAssistantService"/);
+assert.match(activity, /FloatingAssistantService\.ACTION_SHOW/);
+assert.match(activity, /Settings\.ACTION_MANAGE_OVERLAY_PERMISSION/);
 assert.match(activity, /startForegroundService/);
+assert.match(floating, /TYPE_APPLICATION_OVERLAY/);
+assert.match(floating, /ACTION_EDIT_TRANSCRIPT/);
+assert.match(floating, /class OrbView extends View/);
 assert.match(service, /FOREGROUND_SERVICE_TYPE_MICROPHONE/);
+assert.match(service, /ACTION_EDIT_TRANSCRIPT/);
 assert.match(service, /\/api\/transcribe/);
 assert.match(service, /\/api\/answer/);
 assert.ok(router.includes("/api/transcribe"));

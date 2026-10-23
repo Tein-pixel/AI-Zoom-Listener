@@ -33,11 +33,12 @@ public class AudioListenerService extends Service {
     public static final String ACTION_START = "com.teinzz.aizoomlistener.START";
     public static final String ACTION_STOP = "com.teinzz.aizoomlistener.STOP";
     public static final String ACTION_CLEAR = "com.teinzz.aizoomlistener.CLEAR";
+    public static final String ACTION_EDIT_TRANSCRIPT = "com.teinzz.aizoomlistener.EDIT_TRANSCRIPT";
     public static final String ACTION_UPDATE = "com.teinzz.aizoomlistener.UPDATE";
 
     private static final String CHANNEL_ID = "ai_zoom_listener_recording";
     private static final int NOTIFICATION_ID = 7101;
-    private static final long SEGMENT_MS = 12000L;
+    private static final long SEGMENT_MS = 8000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService networkQueue = Executors.newSingleThreadExecutor();
@@ -53,6 +54,8 @@ public class AudioListenerService extends Service {
     private volatile boolean listening;
     private volatile boolean stopRequested;
     private int pendingTasks;
+    private volatile boolean answerRequested;
+    private boolean answerQueued;
 
     private final Runnable rotateSegment = new Runnable() {
         @Override public void run() {
@@ -73,6 +76,8 @@ public class AudioListenerService extends Service {
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
+        String savedHistory = getPrefs().getString("transcript_history", "");
+        synchronized (historyLock) { transcriptHistory.append(savedHistory); }
     }
 
     @Override
@@ -83,7 +88,25 @@ public class AudioListenerService extends Service {
         if (ACTION_CLEAR.equals(action)) {
             synchronized (historyLock) { transcriptHistory.setLength(0); }
             getPrefs().edit().remove("transcript_history").remove("last_answer").apply();
-            if (!listening) stopSelf();
+            emit("transcript", "", false);
+            emit("answer", "", false);
+            setStatus(listening ? "Riwayat dibersihkan. Perekaman tetap aktif." : "Percakapan dibersihkan.");
+            if (!listening && pendingCount() == 0) stopSelf();
+            return START_NOT_STICKY;
+        }
+
+        if (ACTION_EDIT_TRANSCRIPT.equals(action)) {
+            String edited = intent.getStringExtra("transcript");
+            if (edited != null) {
+                synchronized (historyLock) {
+                    transcriptHistory.setLength(0);
+                    transcriptHistory.append(edited);
+                    if (transcriptHistory.length() > 9000) {
+                        transcriptHistory.delete(0, transcriptHistory.length() - 9000);
+                    }
+                    getPrefs().edit().putString("transcript_history", transcriptHistory.toString()).apply();
+                }
+            }
             return START_NOT_STICKY;
         }
 
@@ -100,6 +123,8 @@ public class AudioListenerService extends Service {
 
             if (!listening) {
                 stopRequested = false;
+                answerRequested = false;
+                answerQueued = false;
                 startForeground(NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
                 listening = true;
                 getPrefs().edit().putBoolean("is_listening", true).apply();
@@ -139,7 +164,7 @@ public class AudioListenerService extends Service {
         return builder
                 .setSmallIcon(android.R.drawable.ic_btn_speak_now)
                 .setContentTitle("AI-Zoom Listener sedang aktif")
-                .setContentText("Mendengarkan melalui mikrofon dan memproses audio per 12 detik.")
+                .setContentText("Mendengarkan melalui mikrofon; transkrip diperbarui berkala. Tekan bola untuk berhenti dan meminta jawaban.")
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .setOngoing(true)
                 .setContentIntent(pendingIntent)
@@ -213,6 +238,9 @@ public class AudioListenerService extends Service {
             return;
         }
         listening = false;
+        stopRequested = true;
+        answerRequested = true;
+        synchronized (taskLock) { answerQueued = false; }
         handler.removeCallbacks(rotateSegment);
         File completed = stopCurrentSegment();
         getPrefs().edit().putBoolean("is_listening", false).apply();
@@ -248,22 +276,10 @@ public class AudioListenerService extends Service {
                         transcriptHistory.delete(0, transcriptHistory.length() - 9000);
                     }
                     context = transcriptHistory.toString();
+                    getPrefs().edit().putString("transcript_history", context).apply();
                 }
-                getPrefs().edit().putString("transcript_history", context).apply();
-                emit("transcript", transcript, false);
-                setStatus("Transkrip masuk. Membuat saran AI...");
-
-                JSONObject answerRequest = new JSONObject();
-                answerRequest.put("transcript", transcript);
-                answerRequest.put("context", context);
-                answerRequest.put("topic", meetingTopic);
-                JSONObject answer = postJson("/api/answer", answerRequest);
-                String answerText = answer.optString("answer", "").trim();
-                if (!answerText.isEmpty()) {
-                    getPrefs().edit().putString("last_answer", answerText).apply();
-                    emit("answer", answerText, false);
-                    setStatus(listening ? "Sedang mendengarkan... saran terbaru siap." : "Selesai memproses potongan audio.");
-                }
+                emit("transcript", context, false);
+                setStatus(listening ? "Mendengarkan • transkrip diperbarui." : "Transkrip selesai. Menyiapkan jawaban AI...");
             } catch (Exception e) {
                 setStatus("Proses gagal: " + safeMessage(e));
             } finally {
@@ -339,16 +355,64 @@ public class AudioListenerService extends Service {
         sendBroadcast(update);
     }
 
+    private int pendingCount() {
+        synchronized (taskLock) { return pendingTasks; }
+    }
+
     private void maybeFinishStop() {
-        boolean shouldFinish;
-        synchronized (taskLock) { shouldFinish = stopRequested && pendingTasks == 0; }
-        if (!shouldFinish) return;
-        handler.post(() -> {
-            if (stopRequested && !listening) {
-                stopForeground(STOP_FOREGROUND_REMOVE);
-                stopSelf();
+        boolean queueAnswer = false;
+        synchronized (taskLock) {
+            if (stopRequested && pendingTasks == 0 && answerRequested && !answerQueued) {
+                answerQueued = true;
+                queueAnswer = true;
             }
-        });
+        }
+        if (queueAnswer) {
+            networkQueue.execute(() -> {
+                try {
+                    String context;
+                    synchronized (historyLock) { context = transcriptHistory.toString().trim(); }
+                    if (context.isEmpty()) {
+                        setStatus("Belum ada transkrip yang bisa dijawab. Pastikan suara terdengar oleh mikrofon.");
+                        return;
+                    }
+                    setStatus("Menyusun jawaban dari transkrip...");
+                    JSONObject request = new JSONObject();
+                    request.put("transcript", context);
+                    request.put("context", context);
+                    request.put("topic", meetingTopic);
+                    JSONObject result = postJson("/api/answer", request);
+                    String answerText = result.optString("answer", "").trim();
+                    if (answerText.isEmpty()) {
+                        setStatus("AI tidak mengembalikan jawaban. Coba lagi dengan transkrip yang lebih jelas.");
+                    } else {
+                        getPrefs().edit().putString("last_answer", answerText).apply();
+                        emit("answer", answerText, false);
+                        setStatus("Jawaban AI siap. Tekan bola untuk sesi berikutnya.");
+                    }
+                } catch (Exception e) {
+                    setStatus("Gagal membuat jawaban: " + safeMessage(e));
+                } finally {
+                    answerRequested = false;
+                    stopRequested = false;
+                    synchronized (taskLock) { answerQueued = false; }
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                    stopSelf();
+                }
+            });
+            return;
+        }
+
+        boolean shouldStop;
+        synchronized (taskLock) { shouldStop = stopRequested && pendingTasks == 0 && !answerRequested; }
+        if (shouldStop) {
+            handler.post(() -> {
+                if (stopRequested && !listening) {
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                    stopSelf();
+                }
+            });
+        }
     }
 
     private String stripTrailingSlash(String value) {
