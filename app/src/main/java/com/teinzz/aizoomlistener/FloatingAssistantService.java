@@ -60,6 +60,7 @@ public class FloatingAssistantService extends Service {
     private TextView panelButton;
     private EditText transcript;
     private boolean panelOpen;
+    private boolean panelDismissed;
     private boolean listening;
     private boolean waitingForAnswer;
     private boolean updatingText;
@@ -367,7 +368,7 @@ public class FloatingAssistantService extends Service {
                 }
                 return true;
             case MotionEvent.ACTION_UP:
-                if (!dragging) toggleListening();
+                if (!dragging) handleOrbTap();
                 else snapToEdge();
                 return true;
             case MotionEvent.ACTION_CANCEL:
@@ -390,9 +391,20 @@ public class FloatingAssistantService extends Service {
         snap.start();
     }
 
+    private void handleOrbTap() {
+        // When the user has collapsed the panel, the next tap should reopen it
+        // instead of silently stopping a session or being swallowed during AI work.
+        if (!panelOpen && (panelDismissed || listening || waitingForAnswer)) {
+            expandPanel(true);
+            return;
+        }
+        toggleListening();
+    }
+
     private void toggleListening() {
         if (waitingForAnswer) {
-            setStatus("Jawaban sedang disiapkan. Tunggu sampai selesai.");
+            expandPanel(true);
+            setStatus("Jawaban sedang disiapkan. Panel tetap bisa dibuka; hasil akan muncul di sini.");
             return;
         }
         if (!listening) {
@@ -428,6 +440,7 @@ public class FloatingAssistantService extends Service {
     private void expandPanel(boolean show) {
         if (panel == null || root == null) return;
         panelOpen = show;
+        panelDismissed = !show;
         panel.setVisibility(show ? View.VISIBLE : View.GONE);
         root.setPadding(show ? dp(6) : 0, show ? dp(6) : 0,
                 show ? dp(6) : 0, show ? dp(6) : 0);
